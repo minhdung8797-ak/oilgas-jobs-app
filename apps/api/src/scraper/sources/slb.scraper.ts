@@ -37,7 +37,8 @@ export class SlbScraper extends BaseScraper {
     baseUrl: 'https://careers.slb.com',
     defaultCompany: 'SLB',
     companyType: CompanyType.SERVICE,
-    enabled: true,
+    enabled: false, // Playwright cần >=2GB RAM — Render free (512MB) không đủ.
+    // Nguồn này vẫn được thu thập, nhưng do GitHub Actions chạy (runner có 7GB).
     maxPages: 4,
     priority: 2,
   };

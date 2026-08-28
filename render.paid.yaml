@@ -1,0 +1,199 @@
+# ═══════════════════════════════════════════════════════════════════════════
+#  Render Blueprint — OilGas Jobs Radar
+#  Dựng toàn bộ backend chỉ bằng 1 file: PostgreSQL + API + 2 cron job.
+#  Frontend (apps/web) deploy riêng trên Vercel — xem docs/RENDER-RUNBOOK.md
+#
+#  Áp dụng:  Render Dashboard → New → Blueprint → chọn repo → Apply
+#  Kiểm tra cú pháp trước:  render blueprints validate render.yaml
+#
+#  ⚠️ KHÔNG đặt `rootDir` cho các service dưới đây.
+#     Render giới hạn: "Files outside your service's root directory are not
+#     available at build time." Dockerfile của ta COPY packages/shared,
+#     pnpm-workspace.yaml… từ GỐC repo, nên build context phải là gốc repo.
+#     Phạm vi auto-deploy được kiểm soát bằng `buildFilter` thay thế.
+# ═══════════════════════════════════════════════════════════════════════════
+
+databases:
+  - name: og-postgres
+    databaseName: ogjobs
+    user: ogjobs
+    region: singapore # đổi cho gần người dùng: oregon | frankfurt | singapore …
+    postgresMajorVersion: '16'
+    # plan free: 1 GB, HẾT HẠN SAU 30 NGÀY, không backup → chỉ dùng để thử.
+    # Chạy thật: đổi thành basic-256mb ($6/tháng) hoặc cao hơn.
+    plan: basic-256mb
+    diskSizeGB: 5
+    ipAllowList: [] # rỗng = chỉ cho kết nối qua private network (an toàn nhất)
+
+services:
+  # ─────────────────────────────────────────────────────────────────────────
+  #  API — NestJS + Prisma (+ Playwright khi bật nguồn SPA)
+  #  CMD trong Dockerfile đã chạy `prisma migrate deploy` trước khi start,
+  #  nên schema tự đồng bộ mỗi lần deploy, không cần preDeployCommand
+  #  (preDeployCommand chỉ có trên gói trả phí — cách này chạy được cả gói free).
+  # ─────────────────────────────────────────────────────────────────────────
+  - type: web
+    name: og-api
+    runtime: docker
+    region: singapore
+    # 0.5c-512mb ($7): đủ khi CHỈ dùng nguồn Workday/Cheerio.
+    # Bật scraper Playwright (SLB) thì phải nâng lên 1c-2g ($25) – Chromium
+    # cần ~400MB/context, 512MB sẽ bị OOM kill.
+    plan: 0.5c-512mb
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    autoDeployTrigger: commit
+    numInstances: 1
+    # Đường dẫn tính từ GỐC repo (kể cả khi có rootDir).
+    # Sửa frontend sẽ không kích hoạt build lại backend.
+    buildFilter:
+      paths:
+        - apps/api/**
+        - packages/shared/**
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - package.json
+        - tsconfig.base.json
+      ignoredPaths:
+        - apps/web/**
+        - docs/**
+        - '**/*.md'
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # ⚠️ KHÔNG đặt API_PORT: Render cấp cổng qua biến PORT (mặc định 10000).
+      #    App ưu tiên PORT; đặt API_PORT sẽ khiến app bind sai cổng và
+      #    Render báo "no open ports detected".
+      - key: API_PREFIX
+        value: api/v1
+      - key: DATABASE_URL
+        fromDatabase:
+          name: og-postgres
+          property: connectionString # URL private network, không đi ra Internet
+      # Render tự sinh chuỗi ngẫu nhiên 256-bit ở lần tạo đầu tiên.
+      # Lấy giá trị tại: Dashboard → og-api → Environment.
+      - key: ADMIN_API_KEY
+        generateValue: true
+      # Render hỏi giá trị khi tạo Blueprint lần đầu.
+      # Nhập domain Vercel thật, ví dụ: https://ogjobs.vercel.app
+      - key: CORS_ORIGINS
+        sync: false
+      - key: THROTTLE_TTL
+        value: '60'
+      - key: THROTTLE_LIMIT
+        value: '120'
+      - key: SCRAPER_ENABLED
+        value: 'true'
+      - key: SCRAPER_CONCURRENCY
+        value: '2'
+      - key: SCRAPER_MAX_PAGES
+        value: '3'
+      - key: SCRAPER_REQUEST_DELAY_MS
+        value: '2500'
+      - key: SCRAPER_TIMEOUT_MS
+        value: '45000'
+      # ⚠️ Sửa thành domain + email liên hệ thật của bạn trước khi chạy production
+      - key: SCRAPER_USER_AGENT
+        value: 'OGJobsBot/1.0 (+https://example.com/bot; contact@example.com)'
+      - key: PLAYWRIGHT_HEADLESS
+        value: 'true'
+      # Cron chạy ở service riêng bên dưới → API không tự chạy lịch.
+      # Nếu bật ở đây và sau này scale >1 instance, các instance sẽ scrape trùng nhau.
+      - key: CRON_ENABLED
+        value: 'false'
+      - key: JOB_TTL_DAYS
+        value: '60'
+      - key: CLASSIFIER_MIN_SCORE
+        value: '6'
+      - key: CLASSIFIER_MIN_MARGIN
+        value: '2'
+      - key: HF_ENABLED
+        value: 'false'
+
+  # ─────────────────────────────────────────────────────────────────────────
+  #  CRON 1 — Thu thập job hằng ngày
+  #  Render tính tiền theo GIÂY chạy (tối thiểu $1/tháng/cron service).
+  #  Render đảm bảo tối đa 1 lần chạy đang hoạt động; lần trùng sẽ bị hoãn.
+  #  Tiến trình BẮT BUỘC phải thoát — scrape-cli.ts đã ép exit sau 5s ân hạn.
+  # ─────────────────────────────────────────────────────────────────────────
+  - type: cron
+    name: og-scrape
+    runtime: docker
+    region: singapore
+    plan: 1c-2g # cron trả theo giây nên chọn rộng rãi cho nhanh; không có gói free
+    schedule: '15 3 * * *' # 03:15 UTC = 10:15 giờ VN. Render luôn dùng UTC.
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    dockerCommand: node dist/scripts/scrape-cli.js
+    autoDeployTrigger: commit
+    buildFilter:
+      paths:
+        - apps/api/**
+        - packages/shared/**
+        - pnpm-lock.yaml
+      ignoredPaths:
+        - apps/web/**
+        - '**/*.md'
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: og-postgres
+          property: connectionString
+      - key: SCRAPER_ENABLED
+        value: 'true'
+      - key: SCRAPER_CONCURRENCY
+        value: '2'
+      - key: SCRAPER_MAX_PAGES
+        value: '5'
+      - key: SCRAPER_REQUEST_DELAY_MS
+        value: '2500'
+      - key: SCRAPER_USER_AGENT
+        value: 'OGJobsBot/1.0 (+https://example.com/bot; contact@example.com)'
+      - key: PLAYWRIGHT_HEADLESS
+        value: 'true'
+      - key: CRON_ENABLED
+        value: 'false'
+      - key: CLASSIFIER_MIN_SCORE
+        value: '6'
+      - key: CLASSIFIER_MIN_MARGIN
+        value: '2'
+      - key: HF_ENABLED
+        value: 'false'
+
+  # ─────────────────────────────────────────────────────────────────────────
+  #  CRON 2 — Bảo trì: ẩn job quá hạn + cập nhật tỉ giá USD
+  #  Chạy sau cron thu thập 1 tiếng 15 phút. Rất nhẹ (vài giây).
+  # ─────────────────────────────────────────────────────────────────────────
+  - type: cron
+    name: og-maintenance
+    runtime: docker
+    region: singapore
+    plan: 0.5c-512mb
+    schedule: '30 4 * * *' # 04:30 UTC
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    dockerCommand: node dist/scripts/maintenance-cli.js
+    autoDeployTrigger: commit
+    buildFilter:
+      paths:
+        - apps/api/**
+        - packages/shared/**
+      ignoredPaths:
+        - apps/web/**
+        - '**/*.md'
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: og-postgres
+          property: connectionString
+      - key: JOB_TTL_DAYS
+        value: '60'
+      - key: CRON_ENABLED
+        value: 'false'
+      - key: SCRAPER_ENABLED
+        value: 'false'
