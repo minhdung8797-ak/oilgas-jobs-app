@@ -286,7 +286,7 @@ Lưu ý về lịch: **Render luôn dùng UTC**, không có ô chọn múi giờ
 4. ⚠️ Bật **"Include files outside the Root Directory in the Build Step"**
    — không bật thì build lỗi `Module not found: @og/shared`
 5. **Build & Output Settings** → bấm **Override**:
-   - Install Command: `cd ../.. && pnpm install --no-frozen-lockfile`
+   - Install Command: `cd ../.. && pnpm install --no-frozen-lockfile --prod=false`
    - Build Command: `cd ../.. && pnpm --filter @og/shared build && pnpm --filter @og/web build`
    - Output Directory: `.next`
 

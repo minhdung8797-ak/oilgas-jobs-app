@@ -10,9 +10,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rimraf dist"
   },
-  "devDependencies": {
+  "dependencies": {
     "@types/node": "20.16.10",
-    "typescript": "5.5.4",
+    "typescript": "5.5.4"
+  },
+  "devDependencies": {
     "rimraf": "6.0.1"
   }
 }

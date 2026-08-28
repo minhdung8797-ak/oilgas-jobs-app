@@ -302,13 +302,21 @@ mọi API ngay trên trình duyệt.
    > Ô cuối cùng bắt buộc phải bật. Frontend dùng chung package `@og/shared` nằm ngoài
    > `apps/web`; không bật thì build lỗi `Module not found: @og/shared`.
 
-4. Mở rộng **Build and Output Settings**, bật **Override** cho từng dòng:
+4. **Build and Output Settings**: không cần chỉnh gì — file `apps/web/vercel.json`
+   đã khai báo sẵn và **được ưu tiên hơn** cài đặt trên giao diện:
 
-   | Ô | Giá trị |
-   |---|---|
-   | **Install Command** | `cd ../.. && pnpm install --no-frozen-lockfile` |
-   | **Build Command** | `cd ../.. && pnpm --filter @og/shared build && pnpm --filter @og/web build` |
-   | **Output Directory** | `.next` |
+   ```json
+   {
+     "installCommand": "cd ../.. && pnpm install --no-frozen-lockfile --prod=false",
+     "buildCommand":   "cd ../.. && pnpm --filter @og/shared build && pnpm --filter @og/web build",
+     "outputDirectory": ".next"
+   }
+   ```
+
+   > Cờ `--prod=false` là bắt buộc. Vercel đặt `NODE_ENV=production` khi cài, khiến pnpm
+   > **bỏ qua toàn bộ devDependencies** → build `@og/shared` chết với
+   > `sh: line 1: tsc: command not found`. Vì lý do tương tự, `typescript` và `@types/node`
+   > của `@og/shared` đã được chuyển sang `dependencies`.
 
 5. Mở rộng **Environment Variables**, thêm 2 biến:
 
