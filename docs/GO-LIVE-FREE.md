@@ -186,42 +186,46 @@ Phải in ra `PostgreSQL 16...`
 
 ---
 
-## Bước 3 — Tạo bảng trong database (5 phút)
+## Bước 3 — Tạo bảng + nạp dữ liệu (5 phút, tự động)
 
-Bình thường API tự chạy migration khi khởi động. Nhưng ta làm trước để bước sau chắc chắn
-chạy trơn, và cũng để nạp dữ liệu nền luôn.
+Không cần copy-paste SQL. GitHub Actions làm hết: tạo bảng, chạy migration, nạp
+49 quốc gia / 38 công ty / 32 kỹ năng / 47 tỉ giá.
 
-### 3.1 Tạo bảng
+### 3.1 Khai báo chuỗi kết nối cho Actions
 
-1. Mở **https://github.com/<bạn>/oilgas-jobs/blob/main/apps/api/prisma/migrations/20250101000000_init/migration.sql**
-2. Bấm nút **Raw** → chọn hết (Ctrl+A) → copy (Ctrl+C)
-3. Về Neon → **SQL Editor** → dán vào → **Run**
+1. Vào `https://github.com/<bạn>/<repo>/settings/secrets/actions`
+2. **New repository secret**
+   - **Name**: `DATABASE_URL`
+   - **Secret**: **Chuỗi TRỰC TIẾP** của Neon — bản **KHÔNG có** `-pooler`
+3. **Add secret**
 
-   Kỳ vọng: chạy xong không báo lỗi đỏ.
+> Dùng nhầm chuỗi pooler ở đây sẽ làm bước `prisma migrate deploy` lỗi —
+> Prisma cần kết nối trực tiếp để tạo bảng.
 
-4. Làm lại y hệt với file thứ hai:
-   **`apps/api/prisma/migrations/20250101000100_search_vector/migration.sql`**
+### 3.2 Chạy lần đầu
 
-### 3.2 Nạp dữ liệu nền
-
-Tương tự, copy toàn bộ nội dung file **`apps/api/prisma/seed.sql`** rồi dán vào SQL Editor
-và **Run**.
-
-File này nạp 49 quốc gia, 38 công ty dầu khí, 32 kỹ năng/phần mềm chuyên ngành và bảng tỉ
-giá dự phòng. Chạy lại nhiều lần cũng không sao (mọi câu đều có `ON CONFLICT`).
+1. Repo → tab **Actions** → nếu có banner vàng thì bấm
+   **I understand my workflows, go ahead and enable them**
+2. Menu trái → **Scrape jobs** → **Run workflow**
+   - tick ✅ **setup_only** (chỉ tạo bảng + nạp dữ liệu nền, chưa thu thập job)
+3. **Run workflow** → chờ ~3 phút
 
 ### ✅ Kiểm chứng bước 3
 
-Câu lệnh kiểm tra đã nằm sẵn ở cuối `seed.sql`, kết quả phải là:
+Trong Neon → **SQL Editor**, chạy:
 
-| bang | so_dong |
-|---|---|
-| countries | 49 |
-| companies | 38 |
-| skills | 32 |
-| fx_rates | 47 |
+```sql
+SELECT 'countries' AS bang, COUNT(*) AS so_dong FROM countries
+UNION ALL SELECT 'companies', COUNT(*) FROM companies
+UNION ALL SELECT 'skills',    COUNT(*) FROM skills
+UNION ALL SELECT 'fx_rates',  COUNT(*) FROM fx_rates;
+```
 
-Thiếu bảng nào → migration chưa chạy đủ, làm lại 3.1.
+Kết quả phải là: countries **49**, companies **38**, skills **32**, fx_rates **47**.
+
+> Nếu Actions báo lỗi ở bước *Đồng bộ schema database* → xem [9.6](#96-github-actions-fail).
+> Cách thủ công (dán 3 file SQL vào Neon SQL Editor) vẫn dùng được, xem
+> `apps/api/prisma/migrations/` và `apps/api/prisma/seed.sql`.
 
 ---
 
@@ -335,24 +339,15 @@ Nếu hiện *"Không kết nối được tới API"* → xem [9.3](#93-web-hi�
 
 Đây là thứ thay cho cron trả phí. Repo public → **miễn phí không giới hạn**.
 
-### 6.1 Khai báo mật khẩu database cho Actions
+### 6.1 Chạy thu thập job thật
 
-1. Vào `https://github.com/<bạn>/oilgas-jobs/settings/secrets/actions`
-2. **New repository secret**
-   - **Name**: `DATABASE_URL`
-   - **Secret**: **Chuỗi TRỰC TIẾP** của Neon — bản **KHÔNG có** `-pooler`
-3. **Add secret**
+Secret `DATABASE_URL` đã khai báo ở bước 3, giờ chỉ cần chạy:
 
-> Dùng nhầm chuỗi pooler ở đây thì bước `prisma migrate deploy` trong workflow sẽ lỗi.
-
-### 6.2 Chạy thử ngay
-
-1. Vào tab **Actions** của repo
-2. Nếu thấy banner vàng → bấm **I understand my workflows, go ahead and enable them**
-3. Menu trái chọn **Scrape jobs** → nút **Run workflow** (bên phải)
+1. Tab **Actions** → **Scrape jobs** → **Run workflow**
    - **source**: để trống (chạy tất cả nguồn đang bật)
    - **with_playwright**: tick ✅ nếu muốn lấy cả nguồn SLB
-4. **Run workflow** → chờ 5–10 phút
+   - **setup_only**: **bỏ tick**
+2. **Run workflow** → chờ 5–10 phút
 
 Bấm vào lần chạy đang diễn ra để xem log trực tiếp. Bước **Thu thập job** phải in ra bảng:
 

@@ -34,6 +34,11 @@ on:
         required: false
         type: boolean
         default: false
+      setup_only:
+        description: 'Chỉ tạo bảng + nạp dữ liệu nền, KHÔNG thu thập job (dùng cho lần chạy đầu)'
+        required: false
+        type: boolean
+        default: false
 
 # Không cho 2 lần chạy chồng nhau (tránh ghi trùng vào DB)
 concurrency:
@@ -98,12 +103,19 @@ jobs:
       - name: Đồng bộ schema database
         run: pnpm --filter @og/api exec prisma migrate deploy
 
+      # Nạp countries/companies/skills/fx_rates. Idempotent (ON CONFLICT DO UPDATE)
+      # nên chạy lại mỗi lần cũng vô hại, mất ~2 giây.
+      - name: Nạp dữ liệu nền
+        working-directory: apps/api
+        run: node dist/scripts/seed.js
+
       - name: Thu thập job
+        if: ${{ !inputs.setup_only }}
         working-directory: apps/api
         run: node dist/scripts/scrape-cli.js ${{ inputs.source }}
 
       - name: Bảo trì (ẩn job quá hạn + cập nhật tỉ giá)
-        if: ${{ inputs.source == '' }}
+        if: ${{ inputs.source == '' && !inputs.setup_only }}
         working-directory: apps/api
         run: node dist/scripts/maintenance-cli.js
 
