@@ -32,10 +32,13 @@ export class ReclassifyService {
 
     while (processed < opts.limit) {
       const take = Math.min(this.BATCH, opts.limit - processed);
+      // `undefined` cho cursor/skip ở lô đầu tiên. Không dùng spread có điều kiện
+      // vì Prisma từ chối kiểu union do TypeScript suy ra.
       const batch = await this.prisma.job.findMany({
         where,
         take,
-        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+        skip: cursor ? 1 : undefined,
+        cursor: cursor ? { id: cursor } : undefined,
         orderBy: { id: 'asc' },
         select: { id: true, title: true, description: true, discipline: true },
       });

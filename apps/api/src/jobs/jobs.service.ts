@@ -107,14 +107,22 @@ export class JobsService {
     const rankMap = new Map(idRows.map((r) => [r.id, Number(r.rank)]));
     const scopedWhere: Prisma.JobWhereInput = { AND: [where, { id: { in: idRows.map((r) => r.id) } }] };
 
+    // Sắp xếp theo relevance: lấy rộng rồi xếp theo rank trong bộ nhớ (rank đến từ
+    // truy vấn raw phía trên, Prisma không sắp xếp theo nó được).
+    // Các kiểu sắp xếp khác: để Postgres lo, chỉ lấy đúng 1 trang.
+    //
+    // Lưu ý: KHÔNG dùng spread có điều kiện (`...(a ? {x} : {y})`) trong đối số của
+    // Prisma — TypeScript sẽ suy ra kiểu union và Prisma từ chối. Truyền một object
+    // literal duy nhất, các trường không dùng đặt `undefined`.
+    const isRelevanceSort = query.sort === JobSort.RELEVANCE;
+
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.job.findMany({
         where: scopedWhere,
         select: LIST_SELECT,
-        // Với relevance: lấy nhiều hơn rồi sort theo rank trong bộ nhớ
-        ...(query.sort === JobSort.RELEVANCE
-          ? { take: 3000 }
-          : { orderBy: this.buildOrderBy(query.sort), skip: query.skip, take: query.pageSize }),
+        orderBy: isRelevanceSort ? undefined : this.buildOrderBy(query.sort),
+        skip: isRelevanceSort ? undefined : query.skip,
+        take: isRelevanceSort ? 3000 : query.pageSize,
       }),
       this.prisma.job.count({ where: scopedWhere }),
     ]);
@@ -142,13 +150,17 @@ export class JobsService {
     if (job.country) relatedOr.push({ country: { code: job.country.code } });
     if (job.company) relatedOr.push({ company: { slug: job.company.slug } });
 
+    const relatedWhere: Prisma.JobWhereInput = {
+      id: { not: job.id },
+      isActive: true,
+      discipline: job.discipline,
+      // `undefined` = bỏ qua điều kiện. Không dùng spread có điều kiện ở đây
+      // vì TypeScript sẽ suy ra kiểu union mà Prisma từ chối.
+      OR: relatedOr.length > 0 ? relatedOr : undefined,
+    };
+
     const related = await this.prisma.job.findMany({
-      where: {
-        id: { not: job.id },
-        isActive: true,
-        discipline: job.discipline,
-        ...(relatedOr.length > 0 ? { OR: relatedOr } : {}),
-      },
+      where: relatedWhere,
       select: LIST_SELECT,
       orderBy: { postedAt: 'desc' },
       take: 6,
