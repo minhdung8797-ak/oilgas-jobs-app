@@ -1,0 +1,117 @@
+name: Scrape jobs
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  Cron MIỄN PHÍ bằng GitHub Actions.
+#
+#  Thay cho cron trả phí của Render/Railway: Actions chạy scraper theo lịch,
+#  ghi thẳng vào database đám mây (Neon/Supabase/Render Postgres).
+#
+#  Chi phí:
+#   • Repo PUBLIC  → miễn phí không giới hạn phút
+#   • Repo PRIVATE → 2.000 phút Linux/tháng miễn phí (job này ~5-10 phút/lần
+#     → ~300 phút/tháng, vẫn dư)
+#
+#  ⚠️ Repo public: lịch chạy tự động bị TẮT sau 60 ngày không có hoạt động nào
+#     trong repo. Vào tab Actions bấm "Enable workflow" để bật lại.
+#
+#  CẦN TẠO SECRET trước khi dùng:
+#     Settings → Secrets and variables → Actions → New repository secret
+#       DATABASE_URL = postgresql://...   (chuỗi kết nối tới DB đám mây)
+# ═══════════════════════════════════════════════════════════════════════════
+
+on:
+  schedule:
+    # 03:15 UTC hằng ngày = 10:15 giờ Việt Nam. GitHub Actions luôn dùng UTC.
+    - cron: '15 3 * * *'
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'Chạy 1 nguồn cụ thể (bỏ trống = tất cả nguồn đang bật)'
+        required: false
+        type: string
+      with_playwright:
+        description: 'Cài Chromium để chạy các nguồn dùng Playwright (chậm hơn ~2 phút)'
+        required: false
+        type: boolean
+        default: false
+
+# Không cho 2 lần chạy chồng nhau (tránh ghi trùng vào DB)
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      NODE_ENV: production
+      SCRAPER_ENABLED: 'true'
+      SCRAPER_CONCURRENCY: '2'
+      SCRAPER_MAX_PAGES: '5'
+      SCRAPER_REQUEST_DELAY_MS: '2500'
+      # ⚠️ Đổi thành domain + email liên hệ thật của bạn
+      SCRAPER_USER_AGENT: 'OGJobsBot/1.0 (+https://example.com/bot; contact@example.com)'
+      PLAYWRIGHT_HEADLESS: 'true'
+      CRON_ENABLED: 'false'
+      CLASSIFIER_MIN_SCORE: '6'
+      CLASSIFIER_MIN_MARGIN: '2'
+      HF_ENABLED: 'false'
+      JOB_TTL_DAYS: '60'
+
+    steps:
+      - name: Kiểm tra đã có DATABASE_URL chưa
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Chưa tạo secret DATABASE_URL. Vào Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Cài dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Cài Chromium (chỉ khi cần nguồn Playwright)
+        if: inputs.with_playwright == true
+        run: pnpm --filter @og/api exec playwright install --with-deps chromium
+
+      - name: Build
+        run: |
+          pnpm --filter @og/shared build
+          pnpm --filter @og/api exec prisma generate
+          pnpm --filter @og/api build
+
+      # Giữ schema DB luôn khớp code. An toàn khi chạy lặp: migration đã áp
+      # dụng rồi sẽ bị bỏ qua.
+      - name: Đồng bộ schema database
+        run: pnpm --filter @og/api exec prisma migrate deploy
+
+      - name: Thu thập job
+        working-directory: apps/api
+        run: node dist/scripts/scrape-cli.js ${{ inputs.source }}
+
+      - name: Bảo trì (ẩn job quá hạn + cập nhật tỉ giá)
+        if: ${{ inputs.source == '' }}
+        working-directory: apps/api
+        run: node dist/scripts/maintenance-cli.js
+
+      - name: Tóm tắt kết quả
+        if: always()
+        run: |
+          echo "### Kết quả scrape $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Nguồn: \`${{ inputs.source || 'tất cả' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Xem chi tiết ở log bước *Thu thập job* phía trên." >> $GITHUB_STEP_SUMMARY

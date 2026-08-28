@@ -1,0 +1,83 @@
+version: '3.9'
+
+# ═══════════════════════════════════════════════════════════════
+#  Stack đầy đủ để chạy local: Postgres + API + Web
+#  Chạy:  cp .env.example .env  &&  docker compose up -d --build
+#  Sau đó: docker compose exec api npx prisma db seed
+# ═══════════════════════════════════════════════════════════════
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: og_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ogjobs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ogjobs_password}
+      POSTGRES_DB: ${POSTGRES_DB:-ogjobs}
+      # Cần cho pg_trgm/unaccent trong migration
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8'
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-ogjobs} -d ${POSTGRES_DB:-ogjobs}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: og_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      API_PORT: 4000
+      API_PREFIX: api/v1
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ogjobs}:${POSTGRES_PASSWORD:-ogjobs_password}@postgres:5432/${POSTGRES_DB:-ogjobs}?schema=public&connection_limit=10
+      CORS_ORIGINS: http://localhost:3000
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-change-me-super-secret}
+      SCRAPER_ENABLED: 'true'
+      SCRAPER_CONCURRENCY: '2'
+      SCRAPER_MAX_PAGES: '3'
+      SCRAPER_REQUEST_DELAY_MS: '2000'
+      CRON_ENABLED: 'true'
+      CRON_SCRAPE_ALL: ${CRON_SCRAPE_ALL:-15 3 * * *}
+      HF_ENABLED: ${HF_ENABLED:-false}
+      HF_API_TOKEN: ${HF_API_TOKEN:-}
+    ports:
+      - '4000:4000'
+    # Playwright cần shm lớn hơn mặc định 64MB, nếu không Chromium sẽ crash
+    shm_size: '1gb'
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:4000/api/v1
+        NEXT_PUBLIC_SITE_NAME: ${NEXT_PUBLIC_SITE_NAME:-OilGas Jobs Radar}
+    container_name: og_web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # Next fetch API ở phía SERVER (bên trong container) -> phải gọi tên service
+      # `api` trong mạng nội bộ của compose. Nếu để localhost, container web sẽ
+      # gọi ngược vào chính nó và luôn báo "Không kết nối được tới API".
+      API_INTERNAL_URL: http://api:4000/api/v1
+    ports:
+      - '3000:3000'
+
+volumes:
+  pgdata:
+    driver: local
