@@ -5,8 +5,11 @@
 // ─────────────────────────────────────────────────────────────
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearchPostgres"]
+  provider = "prisma-client-js"
+  // KHÔNG khai báo previewFeatures: app không dùng API full-text của Prisma.
+  // Tìm kiếm toàn văn chạy qua $queryRaw trên cột `search_vector` (migration 002),
+  // cách này nhanh hơn và không phụ thuộc tính năng preview hay thay đổi giữa các
+  // phiên bản Prisma.
 }
 
 datasource db {
