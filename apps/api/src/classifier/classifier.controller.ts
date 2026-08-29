@@ -80,7 +80,8 @@ export class ClassifierController {
   /** POST /api/v1/classify/rebuild – chạy lại classifier trên toàn bộ DB. */
   @Post('rebuild')
   @UseGuards(AdminKeyGuard)
-  @ApiBearerAuth()
+  // Phải trùng tên đăng ký ở main.ts — xem ghi chú trong scraper.controller.ts
+  @ApiBearerAuth('admin')
   @ApiOperation({ summary: '[Admin] Phân loại lại các job đã lưu (sau khi cập nhật từ điển)' })
   async rebuild(@Body() dto: ReclassifyDto) {
     return this.reclassify.run({ source: dto.source, limit: dto.limit ?? 1000 });

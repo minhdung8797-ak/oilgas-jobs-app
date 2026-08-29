@@ -30,7 +30,10 @@ export class ScraperController {
    */
   @Post('run')
   @UseGuards(AdminKeyGuard)
-  @ApiBearerAuth()
+  // Tên 'admin' phải trùng tên đã đăng ký ở main.ts (.addBearerAuth(..., 'admin')).
+  // Để trống là Swagger dùng tên mặc định 'bearer', không khớp -> nút Authorize
+  // nhận khoá nhưng không gắn header vào request, mọi lời gọi đều 401.
+  @ApiBearerAuth('admin')
   @ApiOperation({ summary: '[Admin] Kích hoạt scrape thủ công (1 nguồn hoặc tất cả)' })
   async run(@Body() dto: RunScrapeDto) {
     // async=true: trả 202 ngay, tránh timeout gateway với run dài
