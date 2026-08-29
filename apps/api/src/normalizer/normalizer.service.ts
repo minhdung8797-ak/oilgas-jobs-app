@@ -34,6 +34,9 @@ const ALIAS_INDEX: { alias: string; code: string; isCity: boolean }[] = (() => {
   return rows.sort((a, b) => b.alias.length - a.alias.length);
 })();
 
+/** Mã ISO alpha-2 viết thường, chỉ dùng cho tiền tố địa điểm kiểu Workday. */
+const ISO2_SET = new Set(COUNTRIES.map((c) => c.code.toLowerCase()));
+
 const SKILL_REGEXES = SKILL_PATTERNS.map((s) => ({ ...s, re: new RegExp(s.pattern, 'i') }));
 
 @Injectable()
@@ -117,13 +120,38 @@ export class NormalizerService {
     const lower = cleaned.toLowerCase();
 
     let countryCode: string | null = null;
-    for (const row of ALIAS_INDEX) {
-      const re = new RegExp(`(^|[^a-z])${escapeRegex(row.alias)}([^a-z]|$)`, 'i');
-      if (re.test(lower)) {
-        countryCode = row.code;
-        break;
+    let workdayCity: string | null = null;
+
+    // Workday (Baker Hughes, Halliburton, Equinor) ghi địa điểm dạng
+    //   "IT-Pescara-Cepagatti- VIA Nazionale, 46"
+    //   "IN-HARYANA-GURUGRAM-10th Floor, Tower 10B, DLF Cyber City"
+    // Hai chữ cái đầu là mã ISO alpha-2. Không thể đưa mã 2 ký tự vào ALIAS_INDEX
+    // vì 'in', 'it', 'no', 'de', 'is' trùng với từ tiếng Anh thông thường và sẽ
+    // gán nhầm nước cho hàng loạt job. Nhưng khi mã đứng ngay đầu chuỗi và có dấu
+    // gạch nối theo sau thì gần như chắc chắn đó là mã nước, nên xét riêng ở đây.
+    const iso2Prefix = /^([a-z]{2})-(.*)$/.exec(lower);
+    if (iso2Prefix && ISO2_SET.has(iso2Prefix[1])) {
+      countryCode = iso2Prefix[1].toUpperCase();
+      // Đoạn ngay sau mã nước là thành phố: "IT-Pescara-..." -> "Pescara".
+      // Không có nó thì city sẽ là cả chuỗi "IT-Pescara-Cepagatti- VIA Nazionale".
+      const afterCode = cleaned.slice(3);
+      const token = afterCode.split(/[-,|·•–]/)[0]?.trim();
+      if (token && token.length >= 2 && token.length <= 60) {
+        workdayCity = token;
       }
     }
+
+    if (!countryCode) {
+      for (const row of ALIAS_INDEX) {
+        const re = new RegExp(`(^|[^a-z])${escapeRegex(row.alias)}([^a-z]|$)`, 'i');
+        if (re.test(lower)) {
+          countryCode = row.code;
+          break;
+        }
+      }
+    }
+
+    if (workdayCity) return { city: workdayCity, countryCode };
 
     // City = phần đầu trước dấu phẩy, trừ khi phần đó chính là TÊN NƯỚC.
     // Lưu ý: không loại theo `aliases` vì aliases chứa cả tên thành phố
