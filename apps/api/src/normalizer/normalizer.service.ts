@@ -134,8 +134,18 @@ export class NormalizerService {
       countryCode = iso2Prefix[1].toUpperCase();
       // Đoạn ngay sau mã nước là thành phố: "IT-Pescara-..." -> "Pescara".
       // Không có nó thì city sẽ là cả chuỗi "IT-Pescara-Cepagatti- VIA Nazionale".
-      const afterCode = cleaned.slice(3);
-      const token = afterCode.split(/[-,|·•–]/)[0]?.trim();
+      //
+      // Workday hay chèn mã vùng viết hoa vào giữa: mã bang/tỉnh
+      // ("US-TX-THE WOODLANDS", "CA-AB-LEDUC", "BR-RJ-RIO DE JANEIRO") hoặc mã
+      // sân bay ("MY-KUL-KUALA LUMPUR"). Lấy token đầu sẽ ra "TX"/"RJ"/"KUL".
+      // Bỏ qua token viết hoa toàn bộ dài 2–3 ký tự; tên thành phố thật hầu như
+      // luôn dài hơn hoặc có chữ thường ("Baku", "Pescara" vẫn được giữ).
+      const tokens = cleaned
+        .slice(3)
+        .split(/[-,|·•–]/)
+        .map((t) => t.trim())
+        .filter(Boolean);
+      const token = tokens.find((t) => !/^[A-Z]{2,3}$/.test(t));
       if (token && token.length >= 2 && token.length <= 60) {
         workdayCity = token;
       }
