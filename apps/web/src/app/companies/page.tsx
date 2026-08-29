@@ -38,6 +38,10 @@ export default async function CompaniesPage() {
         <p className="mt-1 text-slate-500">
           {companies.length} công ty · {companies.reduce((s, c) => s + c.jobCount, 0).toLocaleString('vi-VN')} vị trí đang mở
         </p>
+        {/* Dấu thời gian dựng trang: phân biệt "dữ liệu API sai" với "HTML cũ
+            đang được phục vụ từ cache". Nếu con số này đứng yên qua nhiều lần
+            tải thì trang không hề được render lại. */}
+        <p className="mt-1 text-xs text-slate-400">Dựng lúc {new Date().toISOString()}</p>
       </header>
 
       {Object.entries(grouped).map(([type, list]) => (
