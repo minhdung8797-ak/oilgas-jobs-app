@@ -86,26 +86,70 @@ export function parseFilters(searchParams: Record<string, string | string[] | un
   };
 }
 
-async function request<T>(path: string, revalidate = 60): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    // ISR phía server: cache 60s, giảm tải cho API mà vẫn tươi
-    next: { revalidate },
-    headers: { Accept: 'application/json' },
-  });
-  if (!res.ok) {
-    throw new Error(`API ${res.status} ${res.statusText} · ${path}`);
+/**
+ * Lúc `next build`, Next dựng sẵn HTML cho các trang có `revalidate`. Nếu API
+ * đang ngủ (gói Render free ngủ sau 15 phút, đánh thức mất ~1 phút) thì bước
+ * dựng này treo và Next giết worker sau 60 giây -> build đỏ.
+ *
+ * Cách xử lý: khi đang build, đặt hạn chờ ngắn và trả về giá trị rỗng nếu API
+ * chưa kịp trả lời. Trang deploy ra vẫn đúng — ISR sẽ tự lấy dữ liệu thật ở lần
+ * truy cập đầu tiên rồi cache lại. Đổi lại là build không bao giờ phụ thuộc vào
+ * việc API có đang thức hay không.
+ */
+const IS_BUILD = process.env.NEXT_PHASE === 'phase-production-build';
+const TIMEOUT_MS = IS_BUILD ? 8_000 : 25_000;
+
+async function request<T>(path: string, revalidate = 60, fallback?: T): Promise<T> {
+  try {
+    const res = await fetch(`${API_URL}${path}`, {
+      // ISR phía server: cache theo `revalidate` giây, giảm tải cho API mà vẫn tươi
+      next: { revalidate },
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      throw new Error(`API ${res.status} ${res.statusText} · ${path}`);
+    }
+    return (await res.json()) as T;
+  } catch (err) {
+    // Không có phương án dự phòng (ví dụ trang chi tiết job) -> để lỗi nổi lên,
+    // Next sẽ hiện error.tsx / not-found.tsx.
+    if (fallback === undefined) throw err;
+    console.warn(`[api] ${path} thất bại, dùng dữ liệu rỗng:`, (err as Error).message);
+    return fallback;
   }
-  return (await res.json()) as T;
 }
+
+function emptyPage<T>(pageSize: number): PaginatedResult<T> {
+  return {
+    data: [],
+    meta: { page: 1, pageSize, total: 0, totalPages: 0, hasNext: false, hasPrev: false },
+  };
+}
+
+const EMPTY_FACETS: JobFacets = {
+  disciplines: [],
+  countries: [],
+  companies: [],
+  employmentTypes: [],
+  workModes: [],
+  seniorities: [],
+  sources: [],
+  total: 0,
+};
 
 export const api = {
   jobs: (filters: JobFilters) =>
-    request<PaginatedResult<JobDto>>(`/jobs?${toSearchParams(filters).toString()}`, 60),
+    request<PaginatedResult<JobDto>>(
+      `/jobs?${toSearchParams(filters).toString()}`,
+      60,
+      emptyPage<JobDto>(filters.pageSize ?? 20),
+    ),
 
   facets: (filters: JobFilters) => {
     // Facets không phụ thuộc phân trang
     const { page, pageSize, ...rest } = filters;
-    return request<JobFacets>(`/jobs/facets?${toSearchParams(rest).toString()}`, 120);
+    return request<JobFacets>(`/jobs/facets?${toSearchParams(rest).toString()}`, 120, EMPTY_FACETS);
   },
 
   job: (idOrSlug: string) =>
@@ -115,16 +159,21 @@ export const api = {
     ),
 
   countries: () =>
-    request<{ code: string; name: string; region: string | null; jobCount: number }[]>('/countries', 600),
+    request<{ code: string; name: string; region: string | null; jobCount: number }[]>(
+      '/countries',
+      600,
+      [],
+    ),
 
   companies: () =>
     request<{ slug: string; name: string; type: string; logoUrl: string | null; jobCount: number }[]>(
       '/companies',
       600,
+      [],
     ),
 
   skills: () =>
-    request<{ slug: string; name: string; category: string; jobCount: number }[]>('/skills', 600),
+    request<{ slug: string; name: string; category: string; jobCount: number }[]>('/skills', 600, []),
 };
 
 export { API_URL };
