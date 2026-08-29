@@ -183,6 +183,58 @@ export const WORKDAY_TENANTS: WorkdayTenant[] = [
     tenant: 'bakerhughes',
     site: 'BakerHughes',
   },
+  // ── Đã xác minh 2026-08-30 bằng cách gọi thẳng /wday/cxs/... và nhận HTTP 200 ──
+  {
+    key: 'chevron',
+    label: 'Chevron Careers',
+    company: 'Chevron',
+    companyType: CompanyType.IOC,
+    host: 'https://chevron.wd5.myworkdayjobs.com',
+    tenant: 'chevron',
+    site: 'jobs', // site đúng là "jobs", không phải "Chevron"
+  },
+  {
+    key: 'oxy',
+    label: 'Occidental Petroleum Careers',
+    company: 'Occidental Petroleum',
+    companyType: CompanyType.IOC,
+    host: 'https://oxy.wd5.myworkdayjobs.com',
+    tenant: 'oxy',
+    site: 'Corporate',
+  },
+  {
+    key: 'continental',
+    label: 'Continental Resources Careers',
+    company: 'Continental Resources',
+    companyType: CompanyType.IOC,
+    host: 'https://clr.wd5.myworkdayjobs.com',
+    tenant: 'clr',
+    site: 'CLR_Careers',
+  },
+  {
+    key: 'diamondback',
+    label: 'Diamondback Energy Careers',
+    company: 'Diamondback Energy',
+    companyType: CompanyType.IOC,
+    host: 'https://diamondbackenergy.wd12.myworkdayjobs.com',
+    tenant: 'diamondbackenergy',
+    site: 'DBE',
+  },
+  {
+    key: 'permianresources',
+    label: 'Permian Resources Careers',
+    company: 'Permian Resources',
+    companyType: CompanyType.IOC,
+    host: 'https://permianres.wd12.myworkdayjobs.com',
+    tenant: 'permianres',
+    site: 'Permian_Resources_Careers',
+  },
+
+  // ── Tắt: đã kiểm tra 2026-08-30, các địa chỉ này KHÔNG tồn tại ──
+  // Cả hai đều chuyển hướng sang community.workday.com/invalid-url.
+  // Halliburton dùng SAP SuccessFactors (jobs.halliburton.com), không phải Workday.
+  // Equinor dùng cổng tuyển dụng riêng tại equinor.com/careers/vacancies (SPA).
+  // Muốn bật lại thì phải viết scraper riêng cho từng cổng, không dùng WorkdayScraper.
   {
     key: 'halliburton',
     label: 'Halliburton Careers',
@@ -191,6 +243,7 @@ export const WORKDAY_TENANTS: WorkdayTenant[] = [
     host: 'https://halliburton.wd1.myworkdayjobs.com',
     tenant: 'halliburton',
     site: 'Halliburton',
+    enabled: false,
   },
   {
     key: 'equinor',
@@ -200,6 +253,7 @@ export const WORKDAY_TENANTS: WorkdayTenant[] = [
     host: 'https://equinor.wd3.myworkdayjobs.com',
     tenant: 'equinor',
     site: 'Equinor',
+    enabled: false,
   },
   {
     key: 'weatherford',
