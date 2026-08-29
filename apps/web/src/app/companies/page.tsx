@@ -8,7 +8,9 @@ export const metadata: Metadata = {
   description: 'Danh sách công ty dầu khí đang tuyển dụng: IOC, NOC, nhà thầu dịch vụ và EPC.',
 };
 
-export const revalidate = 600;
+// 600 giây là quá dài: một lần đọc trúng trạng thái xấu (API ngủ, hoặc DB đang
+// giữa chừng lệnh seed) sẽ bị giữ lại 10 phút. 120 giây vẫn đủ nhẹ cho API.
+export const revalidate = 120;
 
 const TYPE_LABEL: Record<string, string> = {
   IOC: 'Công ty dầu khí quốc tế',

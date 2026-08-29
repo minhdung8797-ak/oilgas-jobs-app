@@ -158,22 +158,25 @@ export const api = {
       300,
     ),
 
+  // 120 giây thay vì 600: các endpoint này trả về cả `jobCount`, tức là chúng
+  // KHÔNG phải dữ liệu tĩnh — số đếm đổi sau mỗi lần scrape. Cache 10 phút từng
+  // làm trang Công ty hiển thị sai suốt nhiều giờ.
   countries: () =>
     request<{ code: string; name: string; region: string | null; jobCount: number }[]>(
       '/countries',
-      600,
+      120,
       [],
     ),
 
   companies: () =>
     request<{ slug: string; name: string; type: string; logoUrl: string | null; jobCount: number }[]>(
       '/companies',
-      600,
+      120,
       [],
     ),
 
   skills: () =>
-    request<{ slug: string; name: string; category: string; jobCount: number }[]>('/skills', 600, []),
+    request<{ slug: string; name: string; category: string; jobCount: number }[]>('/skills', 120, []),
 };
 
 export { API_URL };
