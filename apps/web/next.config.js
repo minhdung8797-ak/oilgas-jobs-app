@@ -1,8 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Cần cho Docker: xuất bản standalone -> image nhỏ, không cần node_modules đầy đủ
-  output: 'standalone',
+  // Docker cần 'standalone' (image nhỏ, không phải copy toàn bộ node_modules).
+  // Nhưng Vercel KHÔNG hỗ trợ chế độ này: nó dời kết quả sang .next/standalone khiến
+  // Vercel báo `No Output Directory named ".next" found`. Vercel tự đặt biến VERCEL=1,
+  // dùng nó để phân biệt hai môi trường.
+  output: process.env.VERCEL ? undefined : 'standalone',
   transpilePackages: ['@og/shared'],
   images: {
     remotePatterns: [{ protocol: 'https', hostname: '**' }],
