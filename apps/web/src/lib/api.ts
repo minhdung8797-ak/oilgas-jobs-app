@@ -163,27 +163,24 @@ export const api = {
       300,
     ),
 
-  // revalidate = 0 (no-store) cho ba endpoint dưới đây. Chúng trả về `jobCount`,
-  // tức KHÔNG phải dữ liệu tĩnh — số đếm đổi sau mỗi lần scrape. Trước đây để
-  // 600 giây và một bản trả lời chụp nhầm lúc DB đang seed dở (34/38 công ty)
-  // đã kẹt trong Data Cache suốt nhiều giờ, sống qua cả deploy mới.
-  // Ba endpoint này nhẹ và ít được gọi nên bỏ cache là đánh đổi hợp lý.
+  // 120 giây thay vì 600: ba endpoint này trả về `jobCount`, con số đổi sau mỗi
+  // lần scrape nên không phải dữ liệu tĩnh. Phía API cũng đã hạ s-maxage xuống 30.
   countries: () =>
     request<{ code: string; name: string; region: string | null; jobCount: number }[]>(
-      '/countries?v=2',
-      0,
+      '/countries',
+      120,
       [],
     ),
 
   companies: () =>
     request<{ slug: string; name: string; type: string; logoUrl: string | null; jobCount: number }[]>(
-      '/companies?v=2',
-      0,
+      '/companies',
+      120,
       [],
     ),
 
   skills: () =>
-    request<{ slug: string; name: string; category: string; jobCount: number }[]>('/skills?v=2', 0, []),
+    request<{ slug: string; name: string; category: string; jobCount: number }[]>('/skills', 120, []),
 };
 
 export { API_URL };
