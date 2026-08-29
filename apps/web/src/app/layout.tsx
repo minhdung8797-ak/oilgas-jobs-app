@@ -5,6 +5,13 @@ import './globals.css';
 // Dùng system font stack thay vì next/font/google: build không phụ thuộc mạng
 // (Docker/CI offline vẫn build được) và không tốn request tới Google Fonts.
 
+// Chạy toàn bộ route trên Edge runtime thay vì Serverless.
+// Lý do: gói Vercel Hobby chỉ cho 12 Serverless Function/lần deploy, mà Next 14
+// sinh 3 function cho mỗi route (bản thường + .rsc + .prefetch.rsc) -> 4 route đã
+// vượt hạn mức. Edge Function không tính vào con số đó.
+// An toàn ở đây vì code chỉ dùng `fetch` — không đụng API riêng của Node.
+export const runtime = 'edge';
+
 const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME ?? 'OilGas Jobs Radar';
 
 export const metadata: Metadata = {
