@@ -189,24 +189,38 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     enabled: false,
     notes: 'Bật sau khi xác nhận selector thực tế',
   },
+  // ADNOC đã chuyển sang PhenomScraper (xem phenom.scraper.ts): cổng thật là
+  // jobs.adnoc.ae chạy Phenom People, không phải SuccessFactors ở careers.adnoc.ae.
   {
-    key: 'adnoc',
-    label: 'ADNOC Careers',
-    company: 'ADNOC',
+    key: 'aramco',
+    label: 'Saudi Aramco Careers',
+    company: 'Saudi Aramco',
     companyType: CompanyType.NOC,
-    baseUrl: 'https://careers.adnoc.ae',
-    searchUrlTemplate: 'https://careers.adnoc.ae/search?q={keyword}&startrow={page}',
-    keywords: ['reservoir', 'petroleum', 'production', 'geoscience'],
+    baseUrl: 'https://careers.aramco.com',
+    // Cổng GỐC, không phải /saudi/. Đã kiểm tra 2026-08-30:
+    //   /saudi/search/?q=reservoir  -> 0 kết quả, chỉ có tin tuyển chung chung
+    //   /search/?q=reservoir        -> 6 kết quả gồm "Gas Reservoir Engineer",
+    //                                  "Reservoir Engineer", "Brine Reservoir Engineer"
+    // Nhánh /saudi/ dành riêng cho ứng viên Saudi nên không đăng chức danh cụ thể.
+    searchUrlTemplate: 'https://careers.aramco.com/search/?q={keyword}&startrow={page}',
+    keywords: ['reservoir', 'petroleum', 'production engineer', 'geologist', 'petrophysicist'],
     firstPage: 0,
-    maxPages: 3,
+    // maxPages = 1 là CỐ Ý. `{page}` được thay bằng số trang (0,1,2…) nhưng
+    // SuccessFactors dùng `startrow` theo bước 25 (0,25,50…). Đặt >1 sẽ gọi
+    // startrow=1 rồi startrow=2 — trùng gần hết trang đầu, tốn request vô ích.
+    // Mỗi từ khóa của Aramco hiện chỉ ra dưới 25 kết quả nên trang đầu là đủ.
+    // Cần lấy sâu hơn thì phải sửa GenericHtmlScraper để nhân {page} với bước nhảy.
+    maxPages: 1,
     selectors: {
-      card: '.job, tr.data-row',
-      title: 'a.jobTitle-link, a',
-      location: '.jobLocation, .colLocation',
-      posted: '.jobDate, .colDate',
-      detailBody: '.job, .jobdescription',
+      // SAP SuccessFactors RMK render bảng phía server -> Cheerio đọc được,
+      // không cần trình duyệt. Cấu trúc xác minh từ HTML thật.
+      card: 'tr.data-row',
+      title: 'a.jobTitle-link',
+      location: '.jobLocation, span.jobLocation',
+      posted: '.jobDate, span.jobDate',
+      detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
     },
-    enabled: false,
-    notes: 'SAP SuccessFactors – cấu trúc bảng, cần xác nhận trước khi bật',
+    enabled: true,
+    notes: 'SuccessFactors RMK · selector xác minh 2026-08-30 trên /search/?q=reservoir',
   },
 ];

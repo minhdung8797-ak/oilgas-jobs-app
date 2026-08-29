@@ -6,6 +6,7 @@ import { SlbScraper } from './sources/slb.scraper';
 import { BakerHughesScraper } from './sources/bakerhughes.scraper';
 import { WORKDAY_TENANTS, WorkdayScraper } from './sources/workday.scraper';
 import { GENERIC_SOURCES, GenericHtmlScraper } from './sources/generic-html.scraper';
+import { PHENOM_TENANTS, PhenomScraper } from './sources/phenom.scraper';
 
 /**
  * Registry tập trung mọi scraper.
@@ -27,6 +28,8 @@ export class ScraperRegistry {
       // Các tenant Workday khác (bỏ qua bakerhughes vì đã có class riêng)
       ...WORKDAY_TENANTS.filter((t) => t.key !== 'bakerhughes').map((t) => new WorkdayScraper(t)),
       ...GENERIC_SOURCES.map((s) => new GenericHtmlScraper(s)),
+      // Career site chạy Phenom People (ADNOC…) — gọi JSON API, không cần Chromium
+      ...PHENOM_TENANTS.map((t) => new PhenomScraper(t)),
     ];
     this.logger.log(
       `Đã nạp ${this.scrapers.length} scraper (${this.enabled().length} đang bật): ` +
