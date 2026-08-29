@@ -16,10 +16,13 @@ export class AdminKeyGuard implements CanActivate {
       throw new UnauthorizedException('ADMIN_API_KEY chưa được cấu hình trên server');
     }
     const req = ctx.switchToHttp().getRequest<Request>();
-    const bearer = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '');
-    const apiKey = (req.headers['x-api-key'] as string) ?? '';
+    // Bỏ tiền tố "Bearer " lặp lại: giao diện Swagger tự thêm một lần, người dùng
+    // hay gõ thêm một lần nữa -> "Bearer Bearer <key>". Cắt hết rồi trim, vì giá
+    // trị copy từ bảng điều khiển Render thường dính khoảng trắng/xuống dòng.
+    const bearer = (req.headers.authorization ?? '').replace(/^(?:Bearer\s+)+/i, '').trim();
+    const apiKey = ((req.headers['x-api-key'] as string) ?? '').trim();
     const provided = bearer || apiKey;
-    if (!provided || provided !== expected) {
+    if (!provided || provided !== expected.trim()) {
       throw new UnauthorizedException('API key không hợp lệ');
     }
     return true;
