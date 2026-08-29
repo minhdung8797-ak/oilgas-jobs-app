@@ -648,7 +648,7 @@ pnpm --filter @og/api exec prisma migrate dev --name <ten_thay_doi>
 git add apps/api/prisma/migrations && git commit -m "db: <mo ta>"
 ```
 
-Dockerfile chạy `prisma migrate deploy` trước khi start nên schema tự đồng bộ mỗi lần deploy.
+Dockerfile KHÔNG chạy `prisma migrate deploy` lúc khởi động (chuỗi pooler + database ngủ = `P1002`, container chết trước khi API kịp chạy). Migration chạy qua GitHub Actions, nơi dùng chuỗi kết nối trực tiếp.
 **Không bao giờ** dùng `prisma db push` hay `migrate reset` trên production.
 
 > Nếu sau này nâng lên gói trả phí và muốn tách migration khỏi lúc khởi động, thêm

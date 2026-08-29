@@ -65,5 +65,14 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.API_PORT||4000)+'/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 WORKDIR /app/apps/api
-# migrate deploy chạy trước khi start: đảm bảo schema luôn khớp code
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+# KHÔNG chạy `prisma migrate deploy` ở đây.
+#
+# Lý do: DATABASE_URL trên Render là chuỗi *pooler* của Neon, mà Prisma migrate
+# bắt buộc phải nối trực tiếp; thêm nữa Neon free ngủ sau 5 phút rảnh nên lần
+# đánh thức đầu tiên vượt quá thời gian chờ của Prisma -> `Error: P1002` -> container
+# chết trước khi API kịp chạy. Nói cách khác: mỗi lần deploy vào đúng lúc database
+# đang ngủ là hỏng.
+#
+# Migration được chạy ở nơi phù hợp hơn: GitHub Actions (.github/workflows/scrape.yml),
+# nơi dùng chuỗi kết nối TRỰC TIẾP và không có deadline khởi động.
+CMD ["node", "dist/main.js"]
