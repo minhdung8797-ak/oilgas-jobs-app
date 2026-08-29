@@ -102,8 +102,13 @@ const TIMEOUT_MS = IS_BUILD ? 8_000 : 25_000;
 async function request<T>(path: string, revalidate = 60, fallback?: T): Promise<T> {
   try {
     const res = await fetch(`${API_URL}${path}`, {
-      // ISR phía server: cache theo `revalidate` giây, giảm tải cho API mà vẫn tươi
-      next: { revalidate },
+      // revalidate = 0 -> không dùng Data Cache của Vercel.
+      // Data Cache sống dai hơn cả một lần deploy mới và KHÔNG bị "Redeploy
+      // without build cache" xoá, nên một bản trả lời hỏng lọt vào đó sẽ ở lại
+      // rất lâu. Với endpoint danh sách + số đếm thì không đáng đánh đổi.
+      ...(revalidate > 0
+        ? { next: { revalidate } }
+        : { cache: 'no-store' as RequestCache }),
       headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
@@ -158,25 +163,27 @@ export const api = {
       300,
     ),
 
-  // 120 giây thay vì 600: các endpoint này trả về cả `jobCount`, tức là chúng
-  // KHÔNG phải dữ liệu tĩnh — số đếm đổi sau mỗi lần scrape. Cache 10 phút từng
-  // làm trang Công ty hiển thị sai suốt nhiều giờ.
+  // revalidate = 0 (no-store) cho ba endpoint dưới đây. Chúng trả về `jobCount`,
+  // tức KHÔNG phải dữ liệu tĩnh — số đếm đổi sau mỗi lần scrape. Trước đây để
+  // 600 giây và một bản trả lời chụp nhầm lúc DB đang seed dở (34/38 công ty)
+  // đã kẹt trong Data Cache suốt nhiều giờ, sống qua cả deploy mới.
+  // Ba endpoint này nhẹ và ít được gọi nên bỏ cache là đánh đổi hợp lý.
   countries: () =>
     request<{ code: string; name: string; region: string | null; jobCount: number }[]>(
       '/countries',
-      120,
+      0,
       [],
     ),
 
   companies: () =>
     request<{ slug: string; name: string; type: string; logoUrl: string | null; jobCount: number }[]>(
       '/companies',
-      120,
+      0,
       [],
     ),
 
   skills: () =>
-    request<{ slug: string; name: string; category: string; jobCount: number }[]>('/skills', 120, []),
+    request<{ slug: string; name: string; category: string; jobCount: number }[]>('/skills', 0, []),
 };
 
 export { API_URL };
