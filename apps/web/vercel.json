@@ -2,6 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "installCommand": "echo 'Bo qua: viec cai dat duoc thuc hien trong buildCommand'",
-  "buildCommand": "cd ../.. && pnpm install --no-frozen-lockfile --prod=false --force && pnpm --filter @og/shared build && pnpm --filter @og/web build",
+  "buildCommand": "cd ../.. && rm -rf node_modules apps/*/node_modules packages/*/node_modules && pnpm install --no-frozen-lockfile --prod=false --filter @og/web... && pnpm --filter @og/shared build && pnpm --filter @og/web build",
   "outputDirectory": ".next"
 }

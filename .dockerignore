@@ -11,3 +11,7 @@
 docs
 *.md
 !README.md
+
+# Lockfile chi dung cho Vercel/Actions. Docker tu resolve de tranh
+# loi thieu importer apps/web (Dockerfile khong copy package.json cua web).
+pnpm-lock.yaml
