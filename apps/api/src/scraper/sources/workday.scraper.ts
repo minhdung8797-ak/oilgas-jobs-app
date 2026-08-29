@@ -229,6 +229,33 @@ export const WORKDAY_TENANTS: WorkdayTenant[] = [
     tenant: 'permianres',
     site: 'Permian_Resources_Careers',
   },
+  {
+    key: 'bp',
+    label: 'bp Careers',
+    company: 'bp',
+    companyType: CompanyType.IOC,
+    host: 'https://bpinternational.wd3.myworkdayjobs.com',
+    // Tenant là 'bpinternational', KHÔNG phải 'bp'.
+    // Xác minh 2026-08-30: 9 kết quả cho "reservoir", gồm Reservoir Engineer,
+    // Senior Petrophysicist, Petroleum Engineer.
+    tenant: 'bpinternational',
+    site: 'BPCareers',
+  },
+  {
+    key: 'shell',
+    label: 'Shell Careers',
+    company: 'Shell',
+    companyType: CompanyType.IOC,
+    // jobs.shell.com chuyển hướng về đây.
+    host: 'https://shell.wd3.myworkdayjobs.com',
+    tenant: 'shell',
+    site: 'shellcareers',
+    // Site này chỉ có ~12 tin, chủ yếu kỹ thuật viên vận hành và chương trình
+    // graduate; xác minh 2026-08-30 cho 0 kết quả với "reservoir"/"geoscience".
+    // Vẫn bật vì endpoint hợp lệ và tin có thể tăng, nhưng đừng kỳ vọng nhiều —
+    // phần lớn sẽ bị classifier xếp vào OTHER và tự ẩn khỏi kết quả.
+    searchTerms: ['petroleum', 'reservoir', 'production engineer', 'geoscience', 'well'],
+  },
 
   // ── Tắt: đã kiểm tra 2026-08-30, các địa chỉ này KHÔNG tồn tại ──
   // Cả hai đều chuyển hướng sang community.workday.com/invalid-url.
