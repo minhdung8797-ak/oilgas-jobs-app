@@ -170,20 +170,20 @@ export const api = {
   // Ba endpoint này nhẹ và ít được gọi nên bỏ cache là đánh đổi hợp lý.
   countries: () =>
     request<{ code: string; name: string; region: string | null; jobCount: number }[]>(
-      '/countries',
+      '/countries?v=2',
       0,
       [],
     ),
 
   companies: () =>
     request<{ slug: string; name: string; type: string; logoUrl: string | null; jobCount: number }[]>(
-      '/companies',
+      '/companies?v=2',
       0,
       [],
     ),
 
   skills: () =>
-    request<{ slug: string; name: string; category: string; jobCount: number }[]>('/skills', 0, []),
+    request<{ slug: string; name: string; category: string; jobCount: number }[]>('/skills?v=2', 0, []),
 };
 
 export { API_URL };

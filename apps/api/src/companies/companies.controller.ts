@@ -9,7 +9,12 @@ export class CompaniesController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  @CacheTTL(600)
+  // 30 giây, KHÔNG phải 600: endpoint này trả về `jobCount`, con số đổi sau mỗi
+  // lần scrape. Với 600 thì header thành
+  //   s-maxage=600, stale-while-revalidate=3000
+  // tức mọi cache dùng chung (Cloudflare trước Render, tầng fetch của Vercel)
+  // được phép phục vụ bản cũ tới 1 giờ — đủ để khoá cứng một bản trả lời sai.
+  @CacheTTL(30)
   @ApiOperation({ summary: 'Danh sách công ty + số job đang tuyển' })
   async findAll(@Query('type') type?: string) {
     const rows = await this.prisma.company.findMany({
@@ -33,7 +38,12 @@ export class CompaniesController {
   }
 
   @Get(':slug')
-  @CacheTTL(600)
+  // 30 giây, KHÔNG phải 600: endpoint này trả về `jobCount`, con số đổi sau mỗi
+  // lần scrape. Với 600 thì header thành
+  //   s-maxage=600, stale-while-revalidate=3000
+  // tức mọi cache dùng chung (Cloudflare trước Render, tầng fetch của Vercel)
+  // được phép phục vụ bản cũ tới 1 giờ — đủ để khoá cứng một bản trả lời sai.
+  @CacheTTL(30)
   @ApiOperation({ summary: 'Chi tiết 1 công ty + phân bố job theo nhóm ngành' })
   async findOne(@Param('slug') slug: string) {
     const company = await this.prisma.company.findUnique({

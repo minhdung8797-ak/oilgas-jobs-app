@@ -10,7 +10,12 @@ export class CountriesController {
 
   /** GET /api/v1/countries – kèm số job đang mở, sắp xếp giảm dần. */
   @Get()
-  @CacheTTL(600)
+  // 30 giây, KHÔNG phải 600: endpoint này trả về `jobCount`, con số đổi sau mỗi
+  // lần scrape. Với 600 thì header thành
+  //   s-maxage=600, stale-while-revalidate=3000
+  // tức mọi cache dùng chung (Cloudflare trước Render, tầng fetch của Vercel)
+  // được phép phục vụ bản cũ tới 1 giờ — đủ để khoá cứng một bản trả lời sai.
+  @CacheTTL(30)
   @ApiOperation({ summary: 'Danh sách quốc gia + số job đang tuyển' })
   async findAll() {
     const rows = await this.prisma.country.findMany({
