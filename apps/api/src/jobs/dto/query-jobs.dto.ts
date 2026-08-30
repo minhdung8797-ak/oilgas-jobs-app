@@ -1,10 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsEnum,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   Max,
@@ -40,6 +42,7 @@ export class QueryJobsDto extends PaginationDto {
   @IsOptional()
   @Transform(toArray)
   @IsArray()
+  @ArrayMaxSize(20)
   @IsEnum(Discipline, { each: true })
   discipline?: Discipline[];
 
@@ -47,6 +50,7 @@ export class QueryJobsDto extends PaginationDto {
   @IsOptional()
   @Transform(toArray)
   @IsArray()
+  @ArrayMaxSize(20)
   @IsString({ each: true })
   country?: string[];
 
@@ -54,6 +58,7 @@ export class QueryJobsDto extends PaginationDto {
   @IsOptional()
   @Transform(toArray)
   @IsArray()
+  @ArrayMaxSize(20)
   @IsString({ each: true })
   region?: string[];
 
@@ -61,6 +66,7 @@ export class QueryJobsDto extends PaginationDto {
   @IsOptional()
   @Transform(toArray)
   @IsArray()
+  @ArrayMaxSize(20)
   @IsString({ each: true })
   company?: string[];
 
@@ -68,6 +74,7 @@ export class QueryJobsDto extends PaginationDto {
   @IsOptional()
   @Transform(toArray)
   @IsArray()
+  @ArrayMaxSize(20)
   @IsString({ each: true })
   source?: string[];
 
@@ -75,6 +82,7 @@ export class QueryJobsDto extends PaginationDto {
   @IsOptional()
   @Transform(toArray)
   @IsArray()
+  @ArrayMaxSize(20)
   @IsEnum(EmploymentType, { each: true })
   employmentType?: EmploymentType[];
 
@@ -82,6 +90,7 @@ export class QueryJobsDto extends PaginationDto {
   @IsOptional()
   @Transform(toArray)
   @IsArray()
+  @ArrayMaxSize(20)
   @IsEnum(WorkMode, { each: true })
   workMode?: WorkMode[];
 
@@ -89,6 +98,7 @@ export class QueryJobsDto extends PaginationDto {
   @IsOptional()
   @Transform(toArray)
   @IsArray()
+  @ArrayMaxSize(20)
   @IsEnum(Seniority, { each: true })
   seniority?: Seniority[];
 
@@ -96,6 +106,7 @@ export class QueryJobsDto extends PaginationDto {
   @IsOptional()
   @Transform(toArray)
   @IsArray()
+  @ArrayMaxSize(20)
   @IsString({ each: true })
   skill?: string[];
 
@@ -128,9 +139,20 @@ export class QueryJobsDto extends PaginationDto {
   @Max(45)
   maxExperienceYears?: number;
 
-  @ApiPropertyOptional({ description: 'Ngưỡng confidence tối thiểu của classifier', example: 0.3 })
+  // Thiếu @IsNumber/@Min/@Max thì `?minConfidence=abc` cho ra NaN, lọt xuống
+  // Prisma dưới dạng `disciplineConfidence: { gte: NaN }` và gây lỗi 500.
+  // Confidence luôn nằm trong [0,1] nên chặn ngay tại đây.
+  @ApiPropertyOptional({
+    description: 'Ngưỡng confidence tối thiểu của classifier',
+    example: 0.3,
+    minimum: 0,
+    maximum: 1,
+  })
   @IsOptional()
   @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(1)
   minConfidence?: number;
 
   @ApiPropertyOptional({ enum: JobSort, default: JobSort.RECENT })

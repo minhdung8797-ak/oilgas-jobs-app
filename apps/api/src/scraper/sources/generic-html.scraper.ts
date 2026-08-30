@@ -166,8 +166,12 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
       snippet: '.summary, .job-summary',
       detailBody: '.job-description, #job-description',
     },
-    enabled: true,
-    notes: 'Board tổng hợp UK/quốc tế',
+    // TẮT trong đợt rà soát 2026-08-30, hai lý do độc lập:
+    //  1. Job board bên thứ ba — cùng vấn đề ToU như rigzone.
+    //  2. Selector bên trên CHƯA TỪNG được xác minh, khác với mọi nguồn khác
+    //     đều có ghi chú "xác minh <ngày>". Nhiều khả năng nó vẫn luôn trả về 0.
+    enabled: false,
+    notes: 'TẮT: job board bên thứ ba + selector chưa xác minh (rà soát 2026-08-30)',
   },
   {
     key: 'totalenergies',

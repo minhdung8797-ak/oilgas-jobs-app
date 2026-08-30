@@ -47,10 +47,22 @@ export class RigzoneScraper extends BaseScraper {
     strategy: SourceStrategy.HTTP_CHEERIO,
     baseUrl: 'https://www.rigzone.com',
     companyType: CompanyType.JOB_BOARD,
-    enabled: true,
+    // TẮT trong đợt rà soát 2026-08-30.
+    //
+    // Rigzone là job board bên thứ ba và Terms of Use của họ cấm thu thập tự
+    // động. Khác hẳn 14 nguồn đang bật — đều là career site CHÍNH THỨC của
+    // công ty, nơi dữ liệu được chủ động công bố để tuyển người.
+    //
+    // App này chạy công khai và chia sẻ cho người khác dùng, nên rủi ro không
+    // chỉ là bị chặn IP mà còn là trách nhiệm pháp lý. App cũng KHÔNG có cơ chế
+    // đọc robots.txt (xem ghi chú ở generic-html.scraper.ts), nên không có lớp
+    // bảo vệ tự động nào.
+    //
+    // Muốn dữ liệu từ board này thì cách đúng là xin API/RSS chính thức từ họ.
+    enabled: false,
     maxPages: 5,
     priority: 1,
-    notes: 'Job board tổng hợp, nhiều công ty. Kiểm tra ToU trước khi bật production.',
+    notes: 'TẮT: job board bên thứ ba, ToU cấm scraping (rà soát 2026-08-30)',
   };
 
   protected async listJobs(ctx: ScrapeContext): Promise<RawJob[]> {

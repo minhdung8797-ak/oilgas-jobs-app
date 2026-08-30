@@ -61,6 +61,9 @@ export class ScraperController {
   @Get('runs')
   @ApiOperation({ summary: 'Lịch sử các lần chạy scrape' })
   runs(@Query('limit') limit?: string, @Query('source') source?: string) {
-    return this.scraper.listRuns(limit ? parseInt(limit, 10) : 50, source);
+    // `?limit=abc` -> parseInt ra NaN -> Math.min(NaN, 200) = NaN -> Prisma
+    // `take: NaN` -> lỗi 500 mà người lạ kích hoạt được. Ép về mặc định.
+    const parsed = limit ? Number.parseInt(limit, 10) : 50;
+    return this.scraper.listRuns(Number.isFinite(parsed) ? parsed : 50, source);
   }
 }

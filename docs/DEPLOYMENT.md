@@ -2,7 +2,9 @@
 
 > 📘 **Cần làm từng bước có kiểm chứng?** Chọn runbook theo nền tảng:
 > - [RENDER-RUNBOOK.md](RENDER-RUNBOOK.md) — **Git → Render → Vercel** (khuyến nghị: 1 file
->   `render.yaml` dựng cả database + API + 2 cron job)
+>   `render.yaml` — bản miễn phí, `plan: free`, **chỉ 1 web service**, không database và không
+>   cron; database dùng Neon, lịch scrape dùng GitHub Actions. Bản `render.paid.yaml` mới là
+>   bản có sẵn database + API + 2 cron job)
 > - [PRODUCTION-RUNBOOK.md](PRODUCTION-RUNBOOK.md) — **Railway + Vercel**
 >
 > File này là bản tham chiếu ngắn gọn cho nhiều phương án triển khai.
@@ -150,7 +152,7 @@ server {
 - [ ] `ADMIN_API_KEY` là chuỗi ngẫu nhiên mạnh, không phải giá trị mặc định.
 - [ ] `CORS_ORIGINS` chỉ chứa domain thật, không để `*`.
 - [ ] Rate limit (`THROTTLE_LIMIT`) phù hợp lưu lượng dự kiến.
-- [ ] Đã kiểm tra `robots.txt`/ToU của từng nguồn; nguồn chưa xác minh để `enabled: false`.
+- [ ] Đã **tự tay** kiểm tra `robots.txt`/ToU của từng nguồn — app **không** tự đọc `robots.txt`, không có code nào làm việc này. Đó là lý do chỉ bật các career site chính thức của công ty; nguồn chưa xác minh để `enabled: false`.
 - [ ] `SCRAPER_REQUEST_DELAY_MS >= 1500`, User-Agent có email liên hệ.
 - [ ] Bật backup PostgreSQL hằng ngày.
 - [ ] Giám sát bảng `scrape_runs` (alert khi `found = 0` hai lần liên tiếp).

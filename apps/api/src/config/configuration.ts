@@ -14,7 +14,6 @@ export interface AppConfig {
     requestDelayMs: number;
     timeoutMs: number;
     userAgent: string;
-    respectRobots: boolean;
     headless: boolean;
     proxyUrl?: string;
   };
@@ -67,7 +66,6 @@ export default (): AppConfig => ({
     userAgent:
       process.env.SCRAPER_USER_AGENT ??
       'OGJobsBot/1.0 (+https://example.com/bot; contact@example.com)',
-    respectRobots: bool(process.env.SCRAPER_RESPECT_ROBOTS, true),
     headless: bool(process.env.PLAYWRIGHT_HEADLESS, true),
     proxyUrl: process.env.PROXY_URL || undefined,
   },

@@ -30,7 +30,6 @@
     "@nestjs/platform-express": "10.4.4",
     "@nestjs/schedule": "4.1.1",
     "@nestjs/swagger": "7.4.2",
-    "@nestjs/terminus": "10.2.3",
     "@nestjs/throttler": "6.2.1",
     "@og/shared": "workspace:*",
     "@prisma/client": "5.20.0",
@@ -41,9 +40,6 @@
     "compression": "1.7.4",
     "cron": "3.1.7",
     "helmet": "7.1.0",
-    "nestjs-pino": "4.1.0",
-    "pino-http": "10.3.0",
-    "pino-pretty": "11.2.2",
     "playwright": "1.47.2",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.1"

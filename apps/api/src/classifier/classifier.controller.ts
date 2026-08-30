@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
@@ -51,6 +52,11 @@ export class ClassifierController {
 
   /** POST /api/v1/classify – phân loại thử 1 job (public, phục vụ debug & demo). */
   @Post()
+  // 10 lần/phút thay vì mức chung 120. Endpoint này công khai nhưng tốn kém:
+  // mỗi lần chạy hàng trăm regex trên tối đa 12.000 ký tự, và khi bật
+  // HF_ENABLED thì còn gọi API HuggingFace bằng token của chủ app — người lạ
+  // có thể bơm request để đốt hết quota.
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Phân loại 1 job vào 4 nhóm ngành, trả về điểm & keyword khớp' })
   async classifyOne(@Body() dto: ClassifyDto) {
     const result = await this.classifier.classify(dto);

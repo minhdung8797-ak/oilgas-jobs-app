@@ -242,11 +242,38 @@ export class ScraperService implements OnModuleInit {
   }
 
   /** Lịch sử các lần chạy – phục vụ trang admin & cảnh báo. */
+  /**
+   * Lịch sử chạy scrape. Endpoint này CÔNG KHAI (không có AdminKeyGuard) nên
+   * `select` ở đây là ranh giới bảo mật, không phải tối ưu hiệu năng.
+   *
+   * Cột `errors` bị loại có chủ đích: nó lưu message gốc của exception, mà lỗi
+   * Prisma thường kèm hostname + cổng database
+   * ("Can't reach database server at ep-xxx.neon.tech:5432").
+   * Trả nguyên cột đó ra internet là tiết lộ hạ tầng cho người lạ.
+   *
+   * Số lượng lỗi vẫn hữu ích để theo dõi nên giữ lại cột `failed`; muốn đọc chi
+   * tiết lỗi thì xem log của Render.
+   */
   async listRuns(limit = 50, source?: string) {
     return this.prisma.scrapeRun.findMany({
       where: source ? { source } : {},
       orderBy: { startedAt: 'desc' },
-      take: Math.min(limit, 200),
+      take: Math.min(Math.max(limit, 1), 200),
+      select: {
+        id: true,
+        source: true,
+        status: true,
+        startedAt: true,
+        finishedAt: true,
+        durationMs: true,
+        found: true,
+        inserted: true,
+        updated: true,
+        skipped: true,
+        failed: true,
+        triggeredBy: true,
+        // errors: CỐ Ý không trả về — xem ghi chú ở trên
+      },
     });
   }
 

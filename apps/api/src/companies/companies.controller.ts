@@ -1,5 +1,6 @@
 import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CompanyType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CacheTTL } from '../common/interceptors/http-cache.interceptor';
 
@@ -17,8 +18,15 @@ export class CompaniesController {
   @CacheTTL(30)
   @ApiOperation({ summary: 'Danh sách công ty + số job đang tuyển' })
   async findAll(@Query('type') type?: string) {
+    // `type as never` trước đây đẩy thẳng giá trị người dùng vào enum filter của
+    // Prisma; `?type=xyz` gây lỗi 500. Chỉ chấp nhận giá trị thuộc enum, còn lại
+    // coi như không lọc.
+    const validType =
+      type && (Object.values(CompanyType) as string[]).includes(type)
+        ? (type as CompanyType)
+        : undefined;
     const rows = await this.prisma.company.findMany({
-      where: type ? { type: type as never } : {},
+      where: validType ? { type: validType } : {},
       select: {
         id: true,
         slug: true,

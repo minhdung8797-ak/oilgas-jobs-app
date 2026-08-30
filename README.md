@@ -15,20 +15,25 @@ Web app thu thập – chuẩn hóa – phân loại – hiển thị việc là
 
 ```
                         ┌──────────────────────────────────────────┐
-                        │            NGUỒN DỮ LIỆU                 │
-                        │  Rigzone · OilAndGasJobSearch · SLB      │
-                        │  Baker Hughes · Halliburton · Equinor    │
-                        │  TotalEnergies · ADNOC · Aramco …        │
+                        │   NGUỒN DỮ LIỆU (14 nguồn đang bật —     │
+                        │   đều là career site chính thức)         │
+                        │  Baker Hughes · Chevron · Oxy · BP       │
+                        │  Shell · Continental · Diamondback ·     │
+                        │  Permian Resources · ADNOC · Eni ·       │
+                        │  Petronas · QatarEnergy · Harbour ·      │
+                        │  Tullow                                  │
                         └───────────────┬──────────────────────────┘
-                                        │ HTTP / JSON API / Headless browser
+                                        │ HTTP / JSON API
                 ┌───────────────────────▼───────────────────────┐
                 │              SCRAPER LAYER                    │
-                │  ┌──────────────┐ ┌────────────┐ ┌──────────┐ │
-                │  │ HTTP+Cheerio │ │ Workday    │ │Playwright│ │
-                │  │ (Rigzone…)   │ │ JSON API   │ │ (SPA)    │ │
-                │  └──────┬───────┘ └─────┬──────┘ └────┬─────┘ │
-                │         └───────────────┴─────────────┘       │
+                │  ┌──────────┐┌────────┐┌──────┐┌────┐┌──────┐ │
+                │  │ Workday  ││ Phenom ││Oracle││Jibe││ SAP  │ │
+                │  │ JSON API ││ People ││ ORC  ││    ││ SF   │ │
+                │  │   (8)    ││  (1)   ││ (2)  ││(1) ││ (2)  │ │
+                │  └────┬─────┘└───┬────┘└──┬───┘└─┬──┘└──┬───┘ │
+                │       └──────────┴────────┴──────┴──────┘     │
                 │              ScraperRegistry                  │
+                │  (Playwright/SPA: chỉ dùng bởi nguồn đang tắt)│
                 └───────────────────────┬───────────────────────┘
                                         │  RawJob[]
                               ┌─────────▼─────────┐
@@ -95,7 +100,7 @@ Web app thu thập – chuẩn hóa – phân loại – hiển thị việc là
 | Frontend | Next.js 14 (App Router, RSC) · TailwindCSS 3 · TypeScript |
 | Backend | NestJS 10 · Express · class-validator · Swagger |
 | Database | PostgreSQL 16 · Prisma 5 · tsvector + GIN + pg_trgm |
-| Scraper | Playwright (Chromium) · Axios · Cheerio |
+| Scraper | Axios · Cheerio · Playwright (Chromium — **hiện không nguồn nào đang bật dùng tới**, chỉ nguồn `slb` đang tắt cần) |
 | NLP | Rule-based có trọng số · keyword dictionary · HuggingFace zero-shot (tùy chọn) |
 | Deploy | Docker multi-stage · Render Blueprint (API+DB+cron) hoặc Railway · Vercel (Web) |
 
@@ -115,7 +120,15 @@ Web app thu thập – chuẩn hóa – phân loại – hiển thị việc là
 │   │   │   ├── normalizer/        # chuẩn hóa + FX
 │   │   │   ├── scraper/
 │   │   │   │   ├── lib/           # HttpClient, BrowserPool, BaseScraper
-│   │   │   │   └── sources/       # rigzone, slb, bakerhughes, workday, generic
+│   │   │   │   └── sources/
+│   │   │   │       ├── workday.scraper.ts      # 8 nguồn Workday (bakerhughes, chevron, bp…)
+│   │   │   │       ├── phenom.scraper.ts       # Phenom People (adnoc)
+│   │   │   │       ├── oracle-orc.scraper.ts   # Oracle Recruiting Cloud (eni, petronas)
+│   │   │   │       ├── jibe.scraper.ts         # Jibe (qatarenergy)
+│   │   │   │       ├── generic-html.scraper.ts # SAP SuccessFactors (harbourenergy, tullow)
+│   │   │   │       ├── bakerhughes.scraper.ts
+│   │   │   │       ├── rigzone.scraper.ts      # đang tắt (ToU)
+│   │   │   │       └── slb.scraper.ts          # đang tắt (cần Playwright)
 │   │   │   ├── jobs/ companies/ countries/ skills/
 │   │   │   ├── scheduler/         # cron
 │   │   │   ├── scripts/           # seed.ts, scrape-cli.ts, classifier-eval.ts
@@ -127,8 +140,9 @@ Web app thu thập – chuẩn hóa – phân loại – hiển thị việc là
 │       └── Dockerfile
 ├── packages/shared                # types, enums, keyword dictionary, countries
 ├── docker-compose.yml
-├── render.yaml                    # Render Blueprint (trả phí): DB + API + 2 cron job
-├── render.free.yaml               # Render Blueprint (miễn phí): chỉ API, DB dùng Neon
+├── render.yaml                    # Render Blueprint (miễn phí, plan: free): CHỈ 1 web service
+│                                  #   — không database, không cron; DB dùng Neon
+├── render.paid.yaml               # Render Blueprint (trả phí): DB + API + 2 cron job
 ├── .github/workflows/scrape.yml   # Cron miễn phí bằng GitHub Actions
 └── docs/
 ```
@@ -147,7 +161,7 @@ Web app thu thập – chuẩn hóa – phân loại – hiển thị việc là
 cp .env.example .env
 docker compose up -d --build
 docker compose exec api node dist/scripts/seed.js     # nạp countries/companies/skills/fx
-docker compose exec api node dist/scripts/scrape-cli.js rigzone   # thử 1 nguồn
+docker compose exec api node dist/scripts/scrape-cli.js bakerhughes   # thử 1 nguồn
 ```
 
 - Web: http://localhost:3000
@@ -174,8 +188,8 @@ pnpm dev                              # chạy song song api (4000) + web (3000)
 
 ```bash
 pnpm scrape --list          # liệt kê nguồn
-pnpm scrape rigzone         # 1 nguồn
-pnpm scrape                 # tất cả nguồn đang bật
+pnpm scrape bakerhughes     # 1 nguồn
+pnpm scrape                 # tất cả nguồn đang bật (14 nguồn)
 
 # Đánh giá classifier trên tập mẫu có nhãn (không cần DB):
 pnpm --filter @og/api eval
@@ -184,7 +198,7 @@ pnpm --filter @og/api eval
 curl -X POST http://localhost:4000/api/v1/scrape/run \
   -H "Authorization: Bearer $ADMIN_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"source":"rigzone","async":true}'
+  -d '{"source":"bakerhughes","async":true}'
 ```
 
 ---
@@ -282,7 +296,7 @@ curl -X POST http://localhost:4000/api/v1/classify/rebuild \
 
 ## 8. Lưu ý pháp lý & vận hành
 
-- Luôn kiểm tra `robots.txt` và Terms of Use của từng nguồn trước khi bật trên production. Một số job board cấm scraping — trong trường hợp đó hãy dùng API chính thức hoặc RSS/XML feed nếu có.
+- **App không tự đọc `robots.txt`** — không có đoạn code nào kiểm tra file này. Việc kiểm tra `robots.txt` và Terms of Use của từng nguồn là **thủ công, do bạn tự làm** trước khi bật nguồn mới trên production. Chính vì vậy, 14 nguồn đang bật đều **chỉ là career site chính thức của công ty** (dữ liệu công ty chủ động công bố để tuyển người). Hai job board bên thứ ba `rigzone` và `oilandgasjobsearch` đã bị tắt vì Terms of Use cấm scraping — nếu cần dữ liệu từ đó, hãy dùng API chính thức hoặc RSS/XML feed nếu có.
 - Đặt `SCRAPER_REQUEST_DELAY_MS` đủ lớn (≥ 1500ms) và khai báo User-Agent có thông tin liên hệ.
 - Nguồn nào chưa xác minh selector thì để `enabled: false` (xem `generic-html.scraper.ts`).
 - Theo dõi bảng `scrape_runs`: `found` tụt về 0 là dấu hiệu site đã đổi cấu trúc DOM.

@@ -70,28 +70,36 @@ git push -u origin main
 Mở `apps/api/src/scraper/sources/generic-html.scraper.ts` và `workday.scraper.ts`,
 kiểm tra cờ `enabled`. Chỉ bật nguồn bạn đã tự mở trình duyệt kiểm tra selector.
 
-Mặc định trong repo:
+Mặc định trong repo — **14 nguồn đang bật, tất cả đều là career site chính thức của công ty**:
 
-| Nguồn | `enabled` | Ghi chú |
+| Nguồn | `enabled` | Nền tảng / Ghi chú |
 |---|---|---|
-| `rigzone` | ✅ | Kiểm tra ToU trước khi bật thật |
-| `slb` | ✅ | Playwright, tốn RAM nhất |
-| `bakerhughes` | ✅ | Workday JSON API |
-| `halliburton`, `equinor` | ✅ | Workday — xác minh tenant |
-| `oilandgasjobsearch` | ✅ | Selector cần xác minh |
-| `weatherford`, `totalenergies`, `adnoc` | ❌ | Cố ý tắt |
+| `bakerhughes`, `chevron`, `oxy`, `continental`, `diamondback`, `permianresources`, `bp`, `shell` | ✅ | Workday JSON API — `sources/workday.scraper.ts` |
+| `adnoc` | ✅ | Phenom People — `sources/phenom.scraper.ts` |
+| `eni`, `petronas` | ✅ | Oracle Recruiting Cloud — `sources/oracle-orc.scraper.ts` |
+| `qatarenergy` | ✅ | Jibe — `sources/jibe.scraper.ts` |
+| `harbourenergy`, `tullow` | ✅ | SAP SuccessFactors — `sources/generic-html.scraper.ts` |
+| `rigzone`, `oilandgasjobsearch` | ❌ | Job board bên thứ ba, Terms of Use cấm scraping |
+| `slb` | ❌ | Cần Playwright/Chromium, gói Render free 512 MB không đủ RAM |
+| `halliburton`, `equinor` | ❌ | Địa chỉ Workday không tồn tại (redirect về `community.workday.com/invalid-url`); Halliburton thực tế dùng SAP SuccessFactors, Equinor dùng cổng riêng dạng SPA |
+| `weatherford`, `totalenergies` | ❌ | Chưa xác minh selector |
+| `aramco` | ❌ | Selector đúng nhưng `careers.aramco.com` chặn truy cập tự động |
 
-> **Khuyến nghị cho lần deploy đầu:** chỉ để `bakerhughes` bật (Workday JSON API,
-> ổn định nhất, không cần Chromium). Chạy thông rồi mới bật thêm từng nguồn.
+> **Khuyến nghị cho lần deploy đầu:** chạy thử `bakerhughes` một mình trước (Workday JSON API,
+> ổn định nhất, không cần Chromium). Thông rồi mới để cả 14 nguồn cùng chạy.
 
 ### 1.2 Kiểm tra robots.txt của từng nguồn
 
+**App không tự đọc `robots.txt`** — không có đoạn code nào làm việc này. Việc kiểm tra là
+thủ công, bạn phải tự làm trước khi bật thêm bất kỳ nguồn nào:
+
 ```bash
-curl -s https://www.rigzone.com/robots.txt | head -40
-curl -s https://www.oilandgasjobsearch.com/robots.txt | head -40
+curl -s https://<host-cua-nguon>/robots.txt | head -40
 ```
 
 Nguồn nào `Disallow` đường dẫn tìm kiếm → để `enabled: false`, tìm API/RSS chính thức thay thế.
+Đây chính là lý do `rigzone` và `oilandgasjobsearch` đã bị tắt, và lý do danh sách 14 nguồn
+đang bật chỉ gồm career site chính thức của công ty.
 
 **✅ Kiểm chứng:** chạy local một lần trước khi lên production:
 
@@ -581,7 +589,7 @@ Cách sửa:
 1. Mở URL tìm kiếm của nguồn trên trình duyệt (xem `searchUrlTemplate` trong code).
 2. DevTools → Elements, tìm selector thật của thẻ job.
 3. Sửa hằng số `SELECTORS` trong file scraper tương ứng — mọi selector đã gom về một chỗ.
-4. Test local: `pnpm scrape rigzone`
+4. Test local: `pnpm scrape <tên-nguồn>` (ví dụ `pnpm scrape harbourenergy`)
 5. Commit → Railway tự deploy.
 
 Riêng nguồn Workday: `found = 0` thường do sai `host`/`tenant`/`site`. Mở trang careers của công ty,

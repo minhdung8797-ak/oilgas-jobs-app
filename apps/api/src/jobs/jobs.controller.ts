@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CacheTTL } from '../common/interceptors/http-cache.interceptor';
 import { JobsService } from './jobs.service';
@@ -17,6 +18,10 @@ export class JobsController {
    */
   @Get()
   @CacheTTL(60)
+  // 40 lần/phút thay vì mức chung 120. Khi `sort=relevance`, jobs.service nạp
+  // tới 3000 bản ghi (kèm description) vào RAM để xếp hạng — trên instance
+  // Render free 512 MB, vài chục request đồng thời là đủ làm hết bộ nhớ.
+  @Throttle({ default: { limit: 40, ttl: 60_000 } })
   @ApiOperation({ summary: 'Danh sách job đã phân loại, có phân trang & lọc nâng cao' })
   @ApiOkResponse({ description: 'Danh sách job + meta phân trang' })
   findAll(@Query() query: QueryJobsDto) {

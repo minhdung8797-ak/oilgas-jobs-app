@@ -71,35 +71,30 @@ git ls-files | grep render.yaml   # phải thấy render.yaml ở gốc repo
 > sau đó có **14 ngày ân hạn** rồi **xoá sạch dữ liệu**, và **không hỗ trợ backup**.
 > Dùng để thử thì được, chạy thật thì đừng.
 
-### 1.2 Tắt các nguồn scraper chưa xác minh
+### 1.2 Trạng thái các nguồn scraper
 
-Gói `0.5c-512mb` ($7, 512 MB RAM) **không đủ RAM chạy Chromium**. Cho lần deploy đầu, hãy để
-chỉ các nguồn không cần Playwright hoạt động — mở `apps/api/src/scraper/sources/slb.scraper.ts`
-và đặt `enabled: false`:
+> Gói `0.5c-512mb` ($7, 512 MB RAM) **không đủ RAM chạy Chromium**. Nguồn `slb` (nguồn duy
+> nhất dùng Playwright) đã để `enabled: false` sẵn trong code — không cần sửa gì; bật lại
+> sau khi nâng `og-api` lên `1c-2g`.
 
-```ts
-export class SlbScraper extends BaseScraper {
-  readonly config: SourceConfig = {
-    key: 'slb',
-    // …
-    enabled: false,   // ← bật lại sau khi nâng og-api lên 1c-2g
-  };
-```
+Trạng thái thực tế trong repo — **14 nguồn đang bật, đều là career site chính thức của công ty**:
 
-Trạng thái khuyến nghị cho lần đầu:
+| Nguồn | Nền tảng | File | `enabled` |
+|---|---|---|---|
+| `bakerhughes`, `chevron`, `oxy`, `continental`, `diamondback`, `permianresources`, `bp`, `shell` | Workday JSON API | `sources/workday.scraper.ts` | ✅ |
+| `adnoc` | Phenom People | `sources/phenom.scraper.ts` | ✅ |
+| `eni`, `petronas` | Oracle Recruiting Cloud | `sources/oracle-orc.scraper.ts` | ✅ |
+| `qatarenergy` | Jibe | `sources/jibe.scraper.ts` | ✅ |
+| `harbourenergy`, `tullow` | SAP SuccessFactors | `sources/generic-html.scraper.ts` | ✅ |
+| `rigzone`, `oilandgasjobsearch` | job board bên thứ ba | — | ❌ Terms of Use cấm scraping |
+| `slb` | **Playwright** | — | ❌ cần ≥ 1c-2g |
+| `halliburton`, `equinor` | — | — | ❌ địa chỉ Workday không tồn tại |
+| `weatherford`, `totalenergies` | — | — | ❌ chưa xác minh selector |
+| `aramco` | — | — | ❌ site chặn truy cập tự động |
 
-| Nguồn | Cơ chế | `enabled` lần đầu |
-|---|---|---|
-| `bakerhughes`, `halliburton`, `equinor` | Workday JSON API | ✅ |
-| `rigzone`, `oilandgasjobsearch` | Axios + Cheerio | ✅ (kiểm tra `robots.txt` trước) |
-| `slb` | **Playwright** | ❌ cần ≥ 1c-2g |
-| `weatherford`, `totalenergies`, `adnoc` | chưa xác minh selector | ❌ |
-
-Kiểm tra `robots.txt` của nguồn dùng Cheerio:
-
-```bash
-curl -s https://www.rigzone.com/robots.txt | head -40
-```
+> `halliburton` thực tế dùng SAP SuccessFactors, `equinor` dùng cổng riêng dạng SPA —
+> địa chỉ Workday cũ redirect về `community.workday.com/invalid-url`. Muốn bật lại thì
+> phải viết scraper mới, không phải sửa tenant.
 
 ### 1.3 Test local lần cuối
 
@@ -486,7 +481,7 @@ Cách sửa:
 1. Mở URL tìm kiếm của nguồn trên trình duyệt (xem `searchUrlTemplate` trong code)
 2. DevTools → Elements, tìm selector thật của thẻ job
 3. Sửa hằng số `SELECTORS` trong file scraper tương ứng — mọi selector đã gom về một chỗ
-4. Test local: `pnpm scrape rigzone`
+4. Test local: `pnpm scrape <tên-nguồn>` (ví dụ `pnpm scrape harbourenergy`)
 5. Commit → Render tự deploy (nếu đường dẫn khớp `buildFilter`)
 
 Riêng nguồn **Workday**: `found = 0` thường do sai `host`/`tenant`/`site`. Mở trang careers của

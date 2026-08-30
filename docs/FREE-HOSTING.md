@@ -88,20 +88,17 @@ service thành nhập tay:
 > 512 MB — pooler giảm số kết nối. Riêng khi chạy `prisma migrate` thì dùng chuỗi
 > **không** có `-pooler` (Prisma cần kết nối trực tiếp để tạo bảng).
 
-### 3.2 API: chọn gói Free trên Render
+### 3.2 API: gói Free trên Render — đã cấu hình sẵn
 
-Trong `render.yaml`:
+`render.yaml` trong repo **đã là bản free**: `plan: free`, đúng 1 web service, không có
+khối `databases:` và không có service `type: cron` (gói free không hỗ trợ cron — GitHub
+Actions làm thay). Không cần sửa gì.
 
-```yaml
-  - type: web
-    name: og-api
-    plan: free          # thay vì 0.5c-512mb
-```
+Nguồn Playwright (`slb`) cũng **đã để `enabled: false` sẵn** — 512 MB không đủ cho Chromium.
+Xem [RENDER-RUNBOOK mục 1.2](RENDER-RUNBOOK.md) cho bảng trạng thái đầy đủ.
 
-Và **xoá hai service `type: cron`** — gói free không hỗ trợ cron, GitHub Actions sẽ làm thay.
-
-Nhớ tắt nguồn Playwright (`slb`) như hướng dẫn ở [RENDER-RUNBOOK mục 1.2](RENDER-RUNBOOK.md)
-— 512 MB không đủ cho Chromium.
+> Bản trả phí (database + API + 2 cron) nằm ở `render.paid.yaml`. Render chỉ đọc đúng tên
+> `render.yaml`, nên muốn dùng bản trả phí thì phải đổi tên hai file cho nhau.
 
 ### 3.3 Cron: bật GitHub Actions
 
@@ -157,8 +154,15 @@ Muốn cho phép người khác dùng thoải mái, thêm file `LICENSE` ở g�
 - App này **thu thập dữ liệu từ các trang tuyển dụng**. Một số job board (Rigzone,
   OilandGasJobSearch…) **cấm scraping trong Terms of Use**. Dùng riêng cho mình là một chuyện;
   chạy công khai cho nhiều người dùng là chuyện khác — rủi ro pháp lý và bị chặn IP cao hơn hẳn.
-- **An toàn hơn:** chỉ bật các nguồn là **career site chính thức của công ty** (Baker Hughes,
-  Halliburton, Equinor qua Workday JSON API). Đây là dữ liệu công ty chủ động công bố để tuyển người.
+- **An toàn hơn:** chỉ bật các nguồn là **career site chính thức của công ty** — đây là dữ liệu
+  công ty chủ động công bố để tuyển người. Đúng theo nguyên tắc đó, repo hiện bật **14 nguồn**,
+  toàn bộ là career site chính thức, và `rigzone` / `oilandgasjobsearch` đã bị **tắt**:
+  - **Workday JSON API (8):** Baker Hughes, Chevron, Occidental (`oxy`), Continental Resources,
+    Diamondback, Permian Resources, BP, Shell
+  - **Phenom People (1):** ADNOC
+  - **Oracle Recruiting Cloud (2):** Eni, Petronas
+  - **Jibe (1):** QatarEnergy
+  - **SAP SuccessFactors (2):** Harbour Energy, Tullow Oil
 - Luôn giữ `SCRAPER_USER_AGENT` có email liên hệ thật, và `SCRAPER_REQUEST_DELAY_MS ≥ 1500`.
 - Frontend đã luôn dẫn người dùng **về trang gốc để ứng tuyển** (nút "Ứng tuyển tại nguồn"),
   không giữ chân họ lại — đây là cách làm được các job board chấp nhận rộng rãi nhất.

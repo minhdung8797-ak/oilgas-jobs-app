@@ -94,36 +94,20 @@ Mở `https://github.com/<bạn>/oilgas-jobs` — phải thấy đầy đủ th�
 
 ## Bước 1 — Chuẩn bị cấu hình cho bản free (10 phút)
 
-Hai việc bắt buộc, làm ngay trên máy rồi push lên.
+Chỉ còn một việc bắt buộc, làm ngay trên máy rồi push lên.
 
-### 1.1 Dùng blueprint bản free
+### 1.1 Blueprint bản free — đã sẵn sàng, không phải làm gì
 
-```powershell
-cd "D:\Oil and Gas Job Hunting Web App"
-Rename-Item render.yaml render.paid.yaml
-Rename-Item render.free.yaml render.yaml
-```
+File `render.yaml` trong repo **đã là bản miễn phí**: `plan: free`, đúng 1 web service,
+không có khối `databases:` (dùng Neon thay thế) và không có service `type: cron`
+(GitHub Actions thay thế). Bản trả phí nằm ở `render.paid.yaml` — không đụng tới.
 
-> Render chỉ đọc đúng file tên `render.yaml`. Bản free đã bỏ database của Render
-> (dùng Neon thay thế) và bỏ 2 cron trả phí (GitHub Actions thay thế).
+### 1.2 Scraper cần Chromium — đã tắt sẵn
 
-### 1.2 Tắt scraper cần Chromium
-
-Gói free chỉ có 512 MB RAM — không đủ chạy Chromium. Mở file
-`apps\api\src\scraper\sources\slb.scraper.ts` bằng Notepad, tìm dòng:
-
-```ts
-    enabled: true,
-```
-
-trong khối `readonly config: SourceConfig = {` và đổi thành:
-
-```ts
-    enabled: false,   // Playwright cần >= 2GB RAM, gói Render free không đủ
-```
-
-> SLB vẫn được thu thập bình thường — nhưng do **GitHub Actions** chạy (máy ảo Actions
-> có 7 GB RAM, thừa sức chạy Chromium), không phải do API chạy. Xem bước 6.
+> Gói free chỉ có 512 MB RAM, không đủ chạy Chromium. Nguồn `slb` đã để `enabled: false`
+> sẵn trong code, không cần sửa gì. SLB vẫn được thu thập bình thường — nhưng do
+> **GitHub Actions** chạy (máy ảo Actions có 7 GB RAM, thừa sức chạy Chromium),
+> không phải do API chạy. Xem bước 6.
 
 ### 1.3 Sửa User-Agent
 
@@ -364,7 +348,7 @@ Bấm vào lần chạy đang diễn ra để xem log trực tiếp. Bước **T
 │ (index) │ source        │ status    │ found │ inserted │ updated │ skipped │ failed │ seconds │
 ├─────────┼───────────────┼───────────┼───────┼──────────┼─────────┼─────────┼────────┼─────────┤
 │ 0       │ 'bakerhughes' │ 'SUCCESS' │ 84    │ 71       │ 0       │ 13      │ 0      │ 96      │
-│ 1       │ 'halliburton' │ 'SUCCESS' │ 52    │ 44       │ 0       │ 8       │ 0      │ 61      │
+│ 1       │ 'chevron'     │ 'SUCCESS' │ 52    │ 44       │ 0       │ 8       │ 0      │ 61      │
 └─────────┴───────────────┴───────────┴───────┴──────────┴─────────┴─────────┴────────┴─────────┘
 ```
 
@@ -505,7 +489,7 @@ Theo thứ tự:
 Scraper chạy được nhưng không lấy được job nào — hầu như luôn do trang tuyển dụng đổi
 cấu trúc HTML.
 
-Với nguồn **Workday** (`bakerhughes`, `halliburton`, `equinor`) thường là sai tenant:
+Với nguồn **Workday** (`bakerhughes`, `chevron`, `oxy`, `bp`, `shell`…) thường là sai tenant:
 
 1. Mở trang careers của công ty đó trên trình duyệt
 2. Bấm **F12** → tab **Network** → gõ `jobs` vào ô lọc
@@ -514,7 +498,7 @@ Với nguồn **Workday** (`bakerhughes`, `halliburton`, `equinor`) thường l�
    `apps/api/src/scraper/sources/workday.scraper.ts`
 5. Commit → push → chạy lại workflow
 
-Với nguồn HTML (`rigzone`, `oilandgasjobsearch`): F12 → tab **Elements**, tìm selector thật
+Với nguồn HTML/SAP SuccessFactors (`harbourenergy`, `tullow`): F12 → tab **Elements**, tìm selector thật
 của thẻ job rồi sửa hằng số `SELECTORS` ở đầu file scraper tương ứng.
 
 ### 9.5 `inserted = 0`

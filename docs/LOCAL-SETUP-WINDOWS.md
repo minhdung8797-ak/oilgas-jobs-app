@@ -550,7 +550,7 @@ Xem trường `errors`. Cách sửa: mở URL tìm kiếm của nguồn đó tr�
 tab Elements, tìm selector thật của thẻ job, rồi sửa hằng số `SELECTORS` ở đầu file
 scraper tương ứng (mọi selector đã gom về một chỗ cho dễ sửa).
 
-Với nguồn Workday (`bakerhughes`, `halliburton`, `equinor`): `found = 0` thường do sai
+Với nguồn Workday (`bakerhughes`, `chevron`, `oxy`, `bp`, `shell`…): `found = 0` thường do sai
 `host`/`tenant`/`site`. Mở trang careers của công ty → F12 → tab Network → tìm request
 tới `/wday/cxs/<tenant>/<site>/jobs` → copy đúng 3 giá trị vào `WORKDAY_TENANTS`.
 
@@ -641,7 +641,7 @@ pnpm db:seed
 | Dừng | `docker compose stop` | Ctrl+C |
 | Xem log API | `docker compose logs -f api` | hiện thẳng trong terminal |
 | Nạp dữ liệu nền | `docker compose exec api node dist/scripts/seed.js` | `pnpm db:seed` |
-| Scrape 1 nguồn | `docker compose exec api node dist/scripts/scrape-cli.js rigzone` | `pnpm scrape rigzone` |
+| Scrape 1 nguồn | `docker compose exec api node dist/scripts/scrape-cli.js bakerhughes` | `pnpm scrape bakerhughes` |
 | Test classifier | `docker compose exec api node dist/scripts/classifier-eval.js` | `pnpm --filter @og/api eval` |
 | Xem database | — | `pnpm db:studio` |
 | Sau khi sửa code | `docker compose up -d --build` | tự động hot reload |
