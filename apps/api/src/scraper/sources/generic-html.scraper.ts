@@ -263,6 +263,61 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     notes: 'SuccessFactors RMK · xác minh 2026-08-30 · nguồn giàu tin nhất nhóm IOC',
   },
   {
+    key: 'perenco',
+    label: 'Perenco Careers',
+    company: 'Perenco',
+    companyType: CompanyType.IOC,
+    baseUrl: 'https://perenco-careers.talent-soft.com',
+    // Nền tảng TalentSoft (Cegid). Trang perenco.com/job-offers chỉ là vỏ chứa
+    // iframe trỏ tới đây — scrape trang vỏ sẽ không ra gì.
+    //
+    // {keyword} CỐ Ý không xuất hiện trong URL: cổng này chỉ có ~11 tin nên lấy
+    // trọn danh sách một lần rẻ hơn và không bao giờ bỏ sót vì chọn sai từ khoá.
+    // Vì vậy `keywords` bên dưới chỉ có MỘT phần tử — nhiều hơn sẽ tải trùng.
+    searchUrlTemplate: 'https://perenco-careers.talent-soft.com/offre-de-emploi/liste-offres.aspx?LCID=2057',
+    keywords: ['*'],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      card: 'li.ts-offer-list-item',
+      title: 'a.ts-offer-list-item__title-link',
+      // Mô tả gộp cả ngày đăng, loại hợp đồng và khu vực:
+      // "27/08/2026Permanent ContractAfrique centrale"
+      location: '.ts-offer-list-item__description',
+      detailBody: '.ts-offer-page, #description, .contenu',
+    },
+    enabled: true,
+    // Xác minh 2026-08-31: 8 tin hiển thị, có "Field production Engineer".
+    notes: 'TalentSoft · trang gốc là iframe trong perenco.com · xác minh 2026-08-31',
+  },
+  {
+    key: 'trident',
+    label: 'Trident Energy Careers',
+    company: 'Trident Energy',
+    companyType: CompanyType.IOC,
+    baseUrl: 'https://tridentenergy-hr.my.salesforce-sites.com',
+    // Salesforce Recruiting (Visualforce) — bảng render sẵn phía server.
+    // Cũng nằm trong iframe của trang trident-energy.com, cùng lý do như Perenco.
+    // Không có tham số từ khoá; lấy trọn bảng một lần.
+    searchUrlTemplate: 'https://tridentenergy-hr.my.salesforce-sites.com/recruit/fRecruit__ApplyJobList',
+    keywords: ['*'],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      // Bỏ qua hàng tiêu đề: chỉ hàng dữ liệu mới có class `dataRow`.
+      card: 'tr.dataRow',
+      title: 'a[href*="fRecruit__ApplyJob"]',
+      // Cột 4-5 là quốc gia và khu vực; lấy cả hàng rồi để normalizer tự tách.
+      location: 'td.dataCell',
+      detailBody: '.bPageBlock, .pbBody',
+    },
+    enabled: true,
+    // Xác minh 2026-08-31: 9 tin, hiện toàn Brazil và nghiêng về tự động hoá,
+    // đo lường, xây lắp — phần lớn sẽ bị classifier xếp OTHER. Vẫn bật vì Trident
+    // là nhà điều hành thượng nguồn thực thụ, tin sẽ đổi.
+    notes: 'Salesforce Recruiting · xác minh 2026-08-31',
+  },
+  {
     key: 'crescent',
     label: 'Crescent Petroleum Careers',
     company: 'Crescent Petroleum',
