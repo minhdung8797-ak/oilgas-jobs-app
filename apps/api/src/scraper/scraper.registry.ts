@@ -8,6 +8,7 @@ import { WORKDAY_TENANTS, WorkdayScraper } from './sources/workday.scraper';
 import { GENERIC_SOURCES, GenericHtmlScraper } from './sources/generic-html.scraper';
 import { PHENOM_TENANTS, PhenomScraper } from './sources/phenom.scraper';
 import { ORACLE_ORC_TENANTS, OracleOrcScraper } from './sources/oracle-orc.scraper';
+import { JIBE_TENANTS, JibeScraper } from './sources/jibe.scraper';
 
 /**
  * Registry tập trung mọi scraper.
@@ -33,6 +34,8 @@ export class ScraperRegistry {
       ...PHENOM_TENANTS.map((t) => new PhenomScraper(t)),
       // Career site chạy Oracle Recruiting Cloud (Eni…) — REST API, không cần Chromium
       ...ORACLE_ORC_TENANTS.map((t) => new OracleOrcScraper(t)),
+      // Career site chạy Jibe (QatarEnergy…) — REST API trả cả mô tả
+      ...JIBE_TENANTS.map((t) => new JibeScraper(t)),
     ];
     this.logger.log(
       `Đã nạp ${this.scrapers.length} scraper (${this.enabled().length} đang bật): ` +

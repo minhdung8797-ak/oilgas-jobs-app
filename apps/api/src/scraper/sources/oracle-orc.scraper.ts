@@ -148,4 +148,19 @@ export const ORACLE_ORC_TENANTS: OracleOrcTenant[] = [
     // sẽ loại chúng, còn giữ từ khóa rộng thì không bỏ sót tin thượng nguồn thật.
     searchTerms: ['reservoir', 'petroleum', 'geoscience', 'petrophysicist', 'drilling'],
   },
+  {
+    key: 'petronas',
+    label: 'PETRONAS Careers',
+    company: 'Petronas',
+    companyType: CompanyType.NOC,
+    apiHost: 'https://epuc.fa.ap1.oraclecloud.com',
+    publicHost: 'https://careers.petronas.com',
+    siteNumber: 'CX_1',
+    jobPathPrefix: '/en/sites/CX_1',
+    // Xác minh 2026-08-30: site này hiện chỉ có vài tin, và chúng là vị trí
+    // GIẢNG VIÊN tại Universiti Teknologi PETRONAS (Perak) chứ không phải vị trí
+    // vận hành. Vẫn bật vì tái dùng nguyên scraper Oracle, không tốn công thêm,
+    // và Petronas có thể mở tuyển vị trí kỹ thuật qua đúng cổng này.
+    searchTerms: ['reservoir', 'petroleum', 'geoscience', 'production engineer'],
+  },
 ];
