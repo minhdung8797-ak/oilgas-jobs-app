@@ -1,27 +1,27 @@
-name: Scrape jobs
+name: Cập nhật việc làm hằng ngày
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  Cron MIỄN PHÍ bằng GitHub Actions.
 #
-#  Thay cho cron trả phí của Render/Railway: Actions chạy scraper theo lịch,
-#  ghi thẳng vào database đám mây (Neon/Supabase/Render Postgres).
+#  Chạy scraper rồi ghi thẳng vào Neon Postgres. KHÔNG đi qua API trên Render,
+#  nên không phụ thuộc việc API có đang ngủ hay không — đây là lý do đặt cron ở
+#  đây thay vì dùng SchedulerService bên trong API.
 #
-#  Chi phí:
-#   • Repo PUBLIC  → miễn phí không giới hạn phút
-#   • Repo PRIVATE → 2.000 phút Linux/tháng miễn phí (job này ~5-10 phút/lần
-#     → ~300 phút/tháng, vẫn dư)
+#  Chi phí: repo public -> miễn phí không giới hạn phút.
 #
-#  ⚠️ Repo public: lịch chạy tự động bị TẮT sau 60 ngày không có hoạt động nào
-#     trong repo. Vào tab Actions bấm "Enable workflow" để bật lại.
+#  ⚠️ GitHub TẮT lịch chạy tự động sau 60 ngày repo không có hoạt động nào.
+#     Vào tab Actions bấm "Enable workflow" để bật lại. Chỉ cần một commit bất
+#     kỳ trong 60 ngày là đủ để giữ lịch sống.
 #
-#  CẦN TẠO SECRET trước khi dùng:
-#     Settings → Secrets and variables → Actions → New repository secret
-#       DATABASE_URL = postgresql://...   (chuỗi kết nối tới DB đám mây)
+#  CẦN CÓ SECRET (Settings -> Secrets and variables -> Actions):
+#     DATABASE_URL = chuỗi Neon KHÔNG có "-pooler"
+#     Prisma migrate cần kết nối trực tiếp; chuỗi pooler sẽ gây lỗi P1002.
 # ═══════════════════════════════════════════════════════════════════════════
 
 on:
   schedule:
-    # 03:15 UTC hằng ngày = 10:15 giờ Việt Nam. GitHub Actions luôn dùng UTC.
+    # 03:15 UTC = 10:15 giờ Việt Nam. GitHub Actions luôn dùng UTC.
+    # Giờ lẻ là cố ý: đúng đầu giờ có hàng triệu workflow cùng xếp hàng, dễ trễ.
     - cron: '15 3 * * *'
   workflow_dispatch:
     inputs:
@@ -30,17 +30,18 @@ on:
         required: false
         type: string
       with_playwright:
-        description: 'Cài Chromium để chạy các nguồn dùng Playwright (chậm hơn ~2 phút)'
+        description: 'Cài Chromium cho nguồn dùng Playwright (chậm thêm ~2 phút)'
         required: false
         type: boolean
         default: false
       setup_only:
-        description: 'Chỉ tạo bảng + nạp dữ liệu nền, KHÔNG thu thập job (dùng cho lần chạy đầu)'
+        description: 'Chỉ tạo bảng + nạp dữ liệu nền, KHÔNG thu thập job'
         required: false
         type: boolean
         default: false
 
-# Không cho 2 lần chạy chồng nhau (tránh ghi trùng vào DB)
+# Không cho 2 lần chạy chồng nhau: hai tiến trình cùng ghi vào một database sẽ
+# tạo bản ghi trùng và làm nguồn chặn IP vì gọi quá dày.
 concurrency:
   group: scrape
   cancel-in-progress: false
@@ -57,7 +58,6 @@ jobs:
       SCRAPER_CONCURRENCY: '2'
       SCRAPER_MAX_PAGES: '5'
       SCRAPER_REQUEST_DELAY_MS: '2500'
-      # ⚠️ Đổi thành domain + email liên hệ thật của bạn
       SCRAPER_USER_AGENT: 'OGJobsBot/1.0 (+https://github.com/minhdung8797-ak/oilgas-jobs-app)'
       PLAYWRIGHT_HEADLESS: 'true'
       CRON_ENABLED: 'false'
@@ -70,9 +70,13 @@ jobs:
       - name: Kiểm tra đã có DATABASE_URL chưa
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "::error::Chưa tạo secret DATABASE_URL. Vào Settings → Secrets and variables → Actions."
+            echo "::error::Chưa tạo secret DATABASE_URL. Settings → Secrets and variables → Actions."
             exit 1
           fi
+          case "$DATABASE_URL" in
+            *-pooler.*)
+              echo "::warning::DATABASE_URL đang dùng chuỗi pooler. Prisma migrate cần kết nối TRỰC TIẾP; nếu bước migrate lỗi P1002 thì đổi sang chuỗi không có '-pooler'." ;;
+          esac
 
       - uses: actions/checkout@v4
 
@@ -80,15 +84,14 @@ jobs:
         with:
           version: 9.12.0
 
-      # KHÔNG dùng `cache: pnpm` — nó bắt buộc phải có sẵn pnpm-lock.yaml trong repo,
-      # mà dự án này cho phép khởi động không cần chạy pnpm install trên máy.
-      # Mất cache thì chậm hơn ~40 giây, đổi lại chạy được ngay từ repo sạch.
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          # Repo đã có pnpm-lock.yaml nên bật được cache, tiết kiệm ~40 giây/lần.
+          cache: pnpm
 
       - name: Cài dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Cài Chromium (chỉ khi cần nguồn Playwright)
         if: inputs.with_playwright == true
@@ -100,32 +103,40 @@ jobs:
           pnpm --filter @og/api exec prisma generate
           pnpm --filter @og/api build
 
-      # Giữ schema DB luôn khớp code. An toàn khi chạy lặp: migration đã áp
-      # dụng rồi sẽ bị bỏ qua.
+      # An toàn khi chạy lặp: migration đã áp dụng rồi sẽ bị bỏ qua.
       - name: Đồng bộ schema database
         run: pnpm --filter @og/api exec prisma migrate deploy
 
-      # Nạp countries/companies/skills/fx_rates. Idempotent (ON CONFLICT DO UPDATE)
-      # nên chạy lại mỗi lần cũng vô hại, mất ~2 giây.
+      # Nạp countries/companies/skills/fx_rates. Idempotent (ON CONFLICT DO UPDATE).
       - name: Nạp dữ liệu nền
         working-directory: apps/api
         run: node dist/scripts/seed.js
 
-      - name: Thu thập job
+      # continue-on-error: một nguồn chết KHÔNG được ngăn các bước sau chạy.
+      # Bảo trì và báo cáo vẫn phải thực hiện, và báo cáo chính là thứ cho bạn
+      # biết nguồn nào vừa hỏng.
+      - name: Thu thập việc làm
+        id: scrape
         if: ${{ !inputs.setup_only }}
+        continue-on-error: true
         working-directory: apps/api
         run: node dist/scripts/scrape-cli.js ${{ inputs.source }}
 
-      - name: Bảo trì (ẩn job quá hạn + cập nhật tỉ giá)
+      - name: Bảo trì (ẩn tin quá hạn + cập nhật tỉ giá)
         if: ${{ inputs.source == '' && !inputs.setup_only }}
+        continue-on-error: true
         working-directory: apps/api
         run: node dist/scripts/maintenance-cli.js
 
-      - name: Tóm tắt kết quả
-        if: always()
+      - name: Báo cáo kết quả
+        if: ${{ !inputs.setup_only }}
+        working-directory: apps/api
+        run: node dist/scripts/report-cli.js >> "$GITHUB_STEP_SUMMARY"
+
+      # Đánh dấu job đỏ nếu scrape lỗi — nhưng chỉ SAU khi báo cáo đã được ghi,
+      # để bạn vẫn đọc được chuyện gì xảy ra.
+      - name: Báo lỗi nếu bước thu thập thất bại
+        if: steps.scrape.outcome == 'failure'
         run: |
-          echo "### Kết quả scrape $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Nguồn: \`${{ inputs.source || 'tất cả' }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Xem chi tiết ở log bước *Thu thập job* phía trên." >> $GITHUB_STEP_SUMMARY
+          echo "::error::Bước thu thập thất bại — xem bảng báo cáo ở phần Summary."
+          exit 1

@@ -190,7 +190,7 @@ Không cần copy-paste SQL. GitHub Actions làm hết: tạo bảng, chạy mig
 
 1. Repo → tab **Actions** → nếu có banner vàng thì bấm
    **I understand my workflows, go ahead and enable them**
-2. Menu trái → **Scrape jobs** → **Run workflow**
+2. Menu trái → **Cập nhật việc làm hằng ngày** → **Run workflow**
    - tick ✅ **setup_only** (chỉ tạo bảng + nạp dữ liệu nền, chưa thu thập job)
 3. **Run workflow** → chờ ~3 phút
 
@@ -335,7 +335,7 @@ Nếu hiện *"Không kết nối được tới API"* → xem [9.3](#93-web-hi�
 
 Secret `DATABASE_URL` đã khai báo ở bước 3, giờ chỉ cần chạy:
 
-1. Tab **Actions** → **Scrape jobs** → **Run workflow**
+1. Tab **Actions** → **Cập nhật việc làm hằng ngày** → **Run workflow**
    - **source**: để trống (chạy tất cả nguồn đang bật)
    - **with_playwright**: tick ✅ nếu muốn lấy cả nguồn SLB
    - **setup_only**: **bỏ tick**
@@ -554,7 +554,7 @@ Cách giảm nhẹ (chọn 1):
 |---|---|
 | Xem log API | Render → og-api → **Logs** |
 | Xem lần scrape gần nhất | GitHub → tab **Actions** → chọn lần chạy |
-| Chạy scrape ngay | Actions → Scrape jobs → **Run workflow** |
+| Chạy scrape ngay | Actions → Cập nhật việc làm hằng ngày → **Run workflow** |
 | Xem dữ liệu trong DB | Neon → **SQL Editor** hoặc **Tables** |
 | Thử API | `https://og-api-xxxx.onrender.com/api/v1/docs` |
 | Kiểm tra sức khoẻ | `/api/v1/health` và `/api/v1/scrape/runs?limit=10` |

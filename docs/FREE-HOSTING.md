@@ -106,7 +106,7 @@ Xem [RENDER-RUNBOOK mục 1.2](RENDER-RUNBOOK.md) cho bảng trạng thái đầ
    - Name: `DATABASE_URL`
    - Value: chuỗi kết nối Neon **không có** `-pooler` (Actions cần chạy migrate)
 2. Repo → tab **Actions** → nếu thấy thông báo → bấm **I understand my workflows, enable them**
-3. Chạy thử ngay: **Actions** → **Scrape jobs** → **Run workflow** → để trống ô source → **Run**
+3. Chạy thử ngay: **Actions** → **Cập nhật việc làm hằng ngày** → **Run workflow** → để trống ô source → **Run**
 
 Theo dõi log. Bước *Thu thập job* phải in ra bảng có `found` và `inserted` > 0.
 
