@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, ScrapeStatus } from '@prisma/client';
 import { RawJob, mapLimit } from '@og/shared';
@@ -34,7 +34,7 @@ export interface RunSummary {
  *  • Lỗi 1 nguồn không làm hỏng các nguồn khác (Promise per-source, try/catch).
  */
 @Injectable()
-export class ScraperService {
+export class ScraperService implements OnModuleInit {
   private readonly logger = new Logger(ScraperService.name);
   private readonly running = new Set<string>();
 
@@ -47,6 +47,30 @@ export class ScraperService {
     private readonly jobs: JobsService,
     private readonly browser: BrowserPool,
   ) {}
+
+  /**
+   * Dọn các phiên chạy mồ côi lúc khởi động.
+   *
+   * `running` là khóa trong RAM nên chết theo tiến trình, nhưng dòng
+   * `scrape_runs` với status RUNNING thì nằm lại trong database vĩnh viễn.
+   * Chuyện này xảy ra thật: Render deploy lại giữa lúc scraper đang chạy.
+   *
+   * Tiến trình vừa mới khởi động thì không thể có phiên nào đang chạy — mọi
+   * dòng RUNNING còn sót đều là rác, đánh dấu FAILED để lịch sử phản ánh đúng.
+   */
+  async onModuleInit(): Promise<void> {
+    const { count } = await this.prisma.scrapeRun.updateMany({
+      where: { status: ScrapeStatus.RUNNING },
+      data: {
+        status: ScrapeStatus.FAILED,
+        finishedAt: new Date(),
+        errors: ['Tiến trình bị dừng giữa chừng (deploy lại hoặc container restart)'],
+      },
+    });
+    if (count > 0) {
+      this.logger.warn(`Đã dọn ${count} phiên scrape mồ côi còn kẹt ở trạng thái RUNNING`);
+    }
+  }
 
   private buildContext(): ScrapeContext {
     const s = this.config.get('scraper') as {

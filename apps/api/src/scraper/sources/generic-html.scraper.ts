@@ -220,7 +220,16 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
       posted: '.jobDate, span.jobDate',
       detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
     },
-    enabled: true,
-    notes: 'SuccessFactors RMK · selector xác minh 2026-08-30 trên /search/?q=reservoir',
+    // TẮT sau khi chạy thật 2026-08-30: mất 939 giây (15,6 phút) rồi trả về
+    // found=0 mà không ghi nhận lỗi nào — mọi request đều treo rồi bị bắt lỗi.
+    // Kiểm tra ngay sau đó bằng trình duyệt thật: careers.aramco.com không tải
+    // nổi, dù một tiếng trước vẫn vào bình thường. Site đang chặn/giới hạn
+    // truy cập tự động.
+    //
+    // KHÔNG lách bằng cách giả User-Agent trình duyệt: đó là vượt rào chống bot.
+    // Selector bên dưới đã xác minh đúng, nên nếu sau này họ mở lại thì chỉ cần
+    // đổi enabled thành true.
+    enabled: false,
+    notes: 'SuccessFactors RMK · selector đúng nhưng site chặn bot (đo 2026-08-30)',
   },
 ];
