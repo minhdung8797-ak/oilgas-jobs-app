@@ -7,6 +7,7 @@ import { BakerHughesScraper } from './sources/bakerhughes.scraper';
 import { WORKDAY_TENANTS, WorkdayScraper } from './sources/workday.scraper';
 import { GENERIC_SOURCES, GenericHtmlScraper } from './sources/generic-html.scraper';
 import { PHENOM_TENANTS, PhenomScraper } from './sources/phenom.scraper';
+import { ORACLE_ORC_TENANTS, OracleOrcScraper } from './sources/oracle-orc.scraper';
 
 /**
  * Registry tập trung mọi scraper.
@@ -30,6 +31,8 @@ export class ScraperRegistry {
       ...GENERIC_SOURCES.map((s) => new GenericHtmlScraper(s)),
       // Career site chạy Phenom People (ADNOC…) — gọi JSON API, không cần Chromium
       ...PHENOM_TENANTS.map((t) => new PhenomScraper(t)),
+      // Career site chạy Oracle Recruiting Cloud (Eni…) — REST API, không cần Chromium
+      ...ORACLE_ORC_TENANTS.map((t) => new OracleOrcScraper(t)),
     ];
     this.logger.log(
       `Đã nạp ${this.scrapers.length} scraper (${this.enabled().length} đang bật): ` +

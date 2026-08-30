@@ -232,4 +232,51 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     enabled: false,
     notes: 'SuccessFactors RMK · selector đúng nhưng site chặn bot (đo 2026-08-30)',
   },
+  {
+    key: 'harbourenergy',
+    label: 'Harbour Energy Careers',
+    company: 'Harbour Energy',
+    companyType: CompanyType.IOC,
+    baseUrl: 'https://careers.harbourenergy.com',
+    searchUrlTemplate: 'https://careers.harbourenergy.com/search/?q={keyword}&startrow={page}',
+    keywords: ['reservoir', 'petroleum', 'production', 'subsurface', 'geoscience'],
+    firstPage: 0,
+    // Toàn site chỉ có 10 tin -> một trang là đủ. Xem ghi chú ở nguồn aramco
+    // về việc {page} không khớp bước nhảy startrow của SuccessFactors.
+    maxPages: 1,
+    selectors: {
+      card: 'tr.data-row',
+      title: 'a.jobTitle-link',
+      location: 'span.jobLocation',
+      posted: 'span.jobDate',
+      detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
+    },
+    enabled: true,
+    // Xác minh 2026-08-30: 10 tin toàn site, trong đó có "Reservoir Engineering
+    // Advisor" và "Production Engineering Advisor" (Stavanger, NO).
+    notes: 'SuccessFactors RMK · xác minh 2026-08-30',
+  },
+  {
+    key: 'tullow',
+    label: 'Tullow Oil Careers',
+    company: 'Tullow Oil',
+    companyType: CompanyType.IOC,
+    baseUrl: 'https://careers.tullowoil.com',
+    searchUrlTemplate: 'https://careers.tullowoil.com/search/?q={keyword}&startrow={page}',
+    keywords: ['reservoir', 'petroleum', 'production', 'geoscience'],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      card: 'tr.data-row',
+      title: 'a.jobTitle-link',
+      location: 'span.jobLocation',
+      posted: 'span.jobDate',
+      detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
+    },
+    enabled: true,
+    // Xác minh 2026-08-30: Tullow đang mở ĐÚNG 1 vị trí trên toàn site
+    // ("Finance Business Advisor"), không thuộc 4 nhóm ngành. Vẫn bật vì cấu
+    // hình đã đúng và chỉ tốn 4 request/ngày — có tin mới là tự vào.
+    notes: 'SuccessFactors RMK · hiện chỉ 1 tin, không thuộc nhóm mục tiêu',
+  },
 ];
