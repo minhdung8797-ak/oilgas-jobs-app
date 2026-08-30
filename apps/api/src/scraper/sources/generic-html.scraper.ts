@@ -224,17 +224,22 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
       posted: '.jobDate, span.jobDate',
       detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
     },
-    // TẮT sau khi chạy thật 2026-08-30: mất 939 giây (15,6 phút) rồi trả về
-    // found=0 mà không ghi nhận lỗi nào — mọi request đều treo rồi bị bắt lỗi.
-    // Kiểm tra ngay sau đó bằng trình duyệt thật: careers.aramco.com không tải
-    // nổi, dù một tiếng trước vẫn vào bình thường. Site đang chặn/giới hạn
-    // truy cập tự động.
+    // Lịch sử của nguồn này đáng ghi lại vì nó dễ bị chẩn đoán sai:
     //
-    // KHÔNG lách bằng cách giả User-Agent trình duyệt: đó là vượt rào chống bot.
-    // Selector bên dưới đã xác minh đúng, nên nếu sau này họ mở lại thì chỉ cần
-    // đổi enabled thành true.
-    enabled: false,
-    notes: 'SuccessFactors RMK · selector đúng nhưng site chặn bot (đo 2026-08-30)',
+    // 2026-08-30: tắt. Lần chạy thật mất 939 giây rồi trả về found=0, và ngay
+    //   sau đó careers.aramco.com treo cả trên trình duyệt thật.
+    // 2026-08-31: BẬT LẠI. Site phản hồi 200 trong dưới 500ms cho mọi từ khoá:
+    //   "reservoir" -> 6 tin (Gas Reservoir Engineer, Brine Reservoir Engineer…),
+    //   "production engineer" -> 25 tin, "petroleum" -> 18 tin.
+    //
+    // Kết luận: đó là GIỚI HẠN TỐC ĐỘ TẠM THỜI, không phải chặn vĩnh viễn — và
+    // gần như chắc chắn do chính đợt dò của tôi hôm đó gọi quá dồn. Bài học:
+    // "found=0 kèm thời gian chạy dài bất thường" nghĩa là bị tiết lưu, cần thử
+    // lại sau vài giờ trước khi kết luận nguồn đã chết.
+    //
+    // maxPages=1 và SCRAPER_REQUEST_DELAY_MS=2500 giữ nhịp gọi đủ nhẹ.
+    enabled: true,
+    notes: 'SuccessFactors RMK · bật lại 2026-08-31 sau đợt tiết lưu tạm thời',
   },
   {
     key: 'exxonmobil',
