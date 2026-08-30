@@ -30,14 +30,16 @@ export default async function HomePage({ searchParams }: PageProps) {
     api.facets(filters).catch(() => null),
   ]);
 
-  if (!jobsResult || !facets) {
-    return (
-      <EmptyState
-        title="Không kết nối được tới API"
-        hint="Kiểm tra biến môi trường NEXT_PUBLIC_API_URL và đảm bảo backend đang chạy."
-      />
-    );
-  }
+  // `api.jobs` và `api.facets` đều có dữ liệu rỗng dự phòng nên KHÔNG BAO GIỜ
+  // throw — nhánh này là code chết, giữ lại chỉ để TypeScript yên tâm.
+  if (!jobsResult || !facets) return <EmptyState title="Không tải được dữ liệu" />;
+
+  // Danh sách rỗng có hai nguyên nhân hoàn toàn khác nhau, và người dùng cần
+  // biết mình đang gặp cái nào:
+  //   • Bộ lọc quá hẹp -> tự nới lỏng là xong
+  //   • API Render đang ngủ (dậy mất ~60 giây) -> chỉ cần chờ rồi tải lại
+  // Chỉ hỏi /health khi thật sự rỗng, nên không tốn thêm request lúc bình thường.
+  const apiAlive = jobsResult.data.length === 0 ? await api.isAlive() : true;
 
   return (
     <div className="space-y-6">
@@ -46,8 +48,9 @@ export default async function HomePage({ searchParams }: PageProps) {
           Việc làm dầu khí quốc tế, đã lọc sẵn cho bạn
         </h1>
         <p className="mt-2 max-w-2xl text-brand-100">
-          Thu thập tự động từ Rigzone, SLB, Baker Hughes, Halliburton, Equinor và nhiều nguồn khác,
-          rồi phân loại bằng NLP vào 4 nhóm: Reservoir · Petroleum · Production · Geoscience &amp; Formation.
+          Thu thập tự động từ trang tuyển dụng chính thức của Baker Hughes, Chevron, bp, Shell,
+          Eni, ADNOC, QatarEnergy, Occidental và nhiều công ty khác, rồi phân loại bằng NLP vào
+          4 nhóm: Reservoir · Petroleum · Production · Geoscience &amp; Formation.
         </p>
         <p className="mt-4 text-sm text-brand-200">
           Hiện có <strong className="text-white">{facets.total.toLocaleString('vi-VN')}</strong> vị trí đang mở.
@@ -67,7 +70,14 @@ export default async function HomePage({ searchParams }: PageProps) {
 
         <div>
           {jobsResult.data.length === 0 ? (
-            <EmptyState />
+            apiAlive ? (
+              <EmptyState />
+            ) : (
+              <EmptyState
+                title="Máy chủ đang khởi động"
+                hint="Máy chủ chạy trên gói miễn phí nên tự ngủ khi không có ai truy cập, và cần khoảng 60 giây để thức dậy. Chờ một lát rồi tải lại trang."
+              />
+            )
           ) : (
             <>
               <div className="space-y-3">

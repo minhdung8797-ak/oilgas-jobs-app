@@ -82,14 +82,47 @@ export function JobCard({ job }: { job: JobDto }) {
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
-        <span className="text-xs text-slate-500">{EMPLOYMENT_LABEL[job.employmentType]}</span>
-        <Link
-          href={`/jobs/${job.slug}`}
-          className="text-sm font-medium text-brand-700 hover:underline dark:text-brand-400"
-        >
-          Xem chi tiết →
-        </Link>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+        <span className="text-xs text-slate-500">
+          {EMPLOYMENT_LABEL[job.employmentType] ?? job.employmentType}
+        </span>
+
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/jobs/${job.slug}`}
+            className="text-sm font-medium text-slate-600 hover:underline dark:text-slate-300"
+          >
+            Chi tiết
+          </Link>
+
+          {/*
+            Link ứng tuyển đi THẲNG tới tin gốc, không qua trang trung gian.
+            Đây cũng là cách làm được các job board chấp nhận rộng rãi nhất:
+            app không giữ chân người dùng, không thay thế trang tuyển dụng gốc.
+
+            rel="noopener noreferrer": chặn trang đích thao túng tab này qua
+            window.opener. nofollow: không truyền uy tín SEO cho bên thứ ba.
+
+            `sourceUrl` đã được API kiểm tra scheme (chỉ http/https) — xem
+            apps/api/src/common/sanitize-html.ts. Ở đây vẫn kiểm tra rỗng vì
+            job cũ trong DB có thể có chuỗi trống sau khi lọc.
+          */}
+          {job.sourceUrl ? (
+            <a
+              href={job.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+              title={`Mở tin tuyển dụng gốc trên ${job.source} (tab mới)`}
+            >
+              Ứng tuyển ↗
+            </a>
+          ) : (
+            <span className="text-sm text-slate-400" title="Nguồn không cung cấp link hợp lệ">
+              Không có link
+            </span>
+          )}
+        </div>
       </div>
     </article>
   );

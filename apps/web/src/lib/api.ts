@@ -96,6 +96,27 @@ export function parseFilters(searchParams: Record<string, string | string[] | un
  * truy cập đầu tiên rồi cache lại. Đổi lại là build không bao giờ phụ thuộc vào
  * việc API có đang thức hay không.
  */
+/**
+ * Lỗi có kèm mã HTTP, để nơi gọi phân biệt được "job này không tồn tại" (404 thật)
+ * với "API đang ngủ / quá hạn chờ" (lỗi mạng). Gộp hai thứ này lại là sai lầm
+ * tốn kém: trang chi tiết từng trả 404 thật cho Google chỉ vì API Render đang ngủ,
+ * rồi cache cái 404 đó suốt 5 phút.
+ */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+/** true nếu job thực sự không tồn tại; false nếu chỉ là sự cố tạm thời. */
+export function isNotFound(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 404;
+}
+
 const IS_BUILD = process.env.NEXT_PHASE === 'phase-production-build';
 const TIMEOUT_MS = IS_BUILD ? 8_000 : 25_000;
 
@@ -113,7 +134,7 @@ async function request<T>(path: string, revalidate = 60, fallback?: T): Promise<
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     if (!res.ok) {
-      throw new Error(`API ${res.status} ${res.statusText} · ${path}`);
+      throw new ApiError(res.status, `API ${res.status} ${res.statusText} · ${path}`);
     }
     return (await res.json()) as T;
   } catch (err) {
@@ -186,6 +207,28 @@ export const api = {
 
   skills: () =>
     request<{ slug: string; name: string; category: string; jobCount: number }[]>('/skills', 0, []),
+
+  /**
+   * Chỉ dùng để PHÂN BIỆT "không có job" với "API không trả lời".
+   *
+   * Các hàm ở trên đều có giá trị rỗng dự phòng nên không bao giờ throw — nghĩa
+   * là danh sách rỗng có thể do API đang ngủ, mà giao diện lại báo "không tìm
+   * thấy việc làm phù hợp". Hai tình huống đó khác hẳn nhau với người dùng.
+   *
+   * Chỉ gọi khi kết quả rỗng nên không thêm tải cho đường đi thông thường.
+   * Hạn chờ ngắn: chỉ cần biết API có sống hay không, không cần dữ liệu.
+   */
+  isAlive: async (): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_URL}/health`, {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(6_000),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
 };
 
 export { API_URL };

@@ -11,6 +11,7 @@ import {
   slugify,
 } from '@og/shared';
 import { PrismaService } from '../prisma/prisma.service';
+import { isSafeUrl, sanitizeHtml } from '../common/sanitize-html';
 import { buildMeta } from '../common/dto/pagination.dto';
 import { JobSort, QueryJobsDto } from './dto/query-jobs.dto';
 
@@ -169,7 +170,10 @@ export class JobsService {
     return {
       ...this.toDto(job as JobRow),
       description: job.description,
-      descriptionHtml: job.descriptionHtml,
+      // Làm sạch NGAY LÚC TRẢ VỀ, không phải lúc lưu: dữ liệu đã nằm sẵn trong
+      // DB từ trước cũng được lọc mà không cần scrape lại. Frontend đưa chuỗi
+      // này thẳng vào dangerouslySetInnerHTML nên đây là lớp phòng thủ duy nhất.
+      descriptionHtml: sanitizeHtml(job.descriptionHtml),
       related: related.map((r) => this.toDto(r as JobRow)),
     };
   }
@@ -287,7 +291,10 @@ export class JobsService {
     const data: Prisma.JobUncheckedCreateInput = {
       slug: `${slugify([job.title, job.companyName, job.city].filter(Boolean).join(' ')).slice(0, 200)}-${job.contentHash.slice(0, 6)}`,
       source: job.source,
-      sourceUrl: job.sourceUrl,
+      // Chặn `javascript:` / `data:` ngay từ lúc ghi. sourceUrl sẽ trở thành
+      // href của nút "Ứng tuyển" trên frontend; một URL độc từ nguồn ngoài lọt
+      // vào đây là XSS khi người dùng bấm.
+      sourceUrl: isSafeUrl(job.sourceUrl) ? job.sourceUrl : '',
       externalId: job.externalId,
       title: job.title.slice(0, 400),
       titleNormalized: job.titleNormalized.slice(0, 400),

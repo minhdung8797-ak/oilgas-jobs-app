@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { api } from '@/lib/api';
+import { api, isNotFound } from '@/lib/api';
 import { JobCard } from '@/components/JobCard';
 import {
   DISCIPLINE_STYLE,
@@ -37,8 +37,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function JobDetailPage({ params }: PageProps) {
-  const job = await api.job(params.slug).catch(() => null);
-  if (!job) notFound();
+  // Chỉ 404 THẬT mới gọi notFound(). Lỗi mạng / API ngủ / hết 25 giây thì để lỗi
+  // nổi lên cho error.tsx xử lý — ở đó có nút "Thử lại".
+  //
+  // Trước đây `.catch(() => null)` gộp mọi loại lỗi thành notFound(), gây ba hậu
+  // quả: người dùng đọc thông báo sai ("tin đã bị gỡ" trong khi API chỉ đang ngủ),
+  // Google nhận HTTP 404 và gỡ chỉ mục tin còn tuyển, và ISR cache cái 404 đó 300
+  // giây nên tải lại vẫn 404 dù API đã thức.
+  let job: Awaited<ReturnType<typeof api.job>>;
+  try {
+    job = await api.job(params.slug);
+  } catch (err) {
+    if (isNotFound(err)) notFound();
+    throw err;
+  }
 
   const style = DISCIPLINE_STYLE[job.discipline] ?? DISCIPLINE_STYLE.OTHER;
   const location = [job.city, job.country?.name].filter(Boolean).join(', ') || job.locationRaw;
@@ -83,7 +95,12 @@ export default async function JobDetailPage({ params }: PageProps) {
     <div className="space-y-6">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{
+          // JSON.stringify KHONG escape dau '<'. Mot job co mo ta chua
+          // "</script><img src=x onerror=...>" se thoat khoi the script va chay.
+          // Escape '<' thanh \\u003c la cach chuan de nhung JSON vao HTML.
+          __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
+        }}
       />
 
       <nav className="text-sm text-slate-500">
@@ -140,8 +157,9 @@ export default async function JobDetailPage({ params }: PageProps) {
             {job.descriptionHtml ? (
               <div
                 className="prose-og space-y-3 text-sm leading-relaxed text-slate-700 dark:text-slate-300 [&_a]:text-brand-600 [&_li]:ml-5 [&_li]:list-disc [&_strong]:font-semibold"
-                // Nội dung đến từ nguồn ngoài -> đã strip script/style ở tầng scraper.
-                // Production nên bọc thêm sanitizer (vd DOMPurify phía server).
+                // An toàn: API đã lọc qua allowlist trước khi trả về — xem
+                // apps/api/src/common/sanitize-html.ts. Chỉ còn thẻ định dạng,
+                // mọi thuộc tính on* / style / javascript: đều đã bị loại.
                 dangerouslySetInnerHTML={{ __html: job.descriptionHtml }}
               />
             ) : (
@@ -155,11 +173,31 @@ export default async function JobDetailPage({ params }: PageProps) {
         {/* ── Sidebar ── */}
         <aside className="space-y-4">
           <div className="card p-5">
-            <a href={job.sourceUrl} target="_blank" rel="noreferrer nofollow" className="btn-primary w-full">
-              Ứng tuyển tại nguồn ↗
-            </a>
+            {job.sourceUrl ? (
+              <a
+                href={job.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="btn-primary w-full"
+              >
+                Ứng tuyển tại nguồn ↗
+              </a>
+            ) : (
+              <p className="rounded-lg bg-slate-100 px-3 py-2 text-center text-sm text-slate-500 dark:bg-slate-800">
+                Nguồn không cung cấp link hợp lệ
+              </p>
+            )}
             <p className="mt-2 text-center text-xs text-slate-500">
               Chuyển tới <strong>{job.source}</strong>
+            </p>
+            {/*
+              Tin tuyển dụng hết hạn là chuyện bình thường: kiểm tra thực tế
+              2026-08-30 cho thấy một tin Petronas đã thu thập được nay trả về
+              "job expired". App không thể biết điều đó cho tới lần scrape sau,
+              nên nói trước với người dùng thay vì để họ bấm vào rồi thất vọng.
+            */}
+            <p className="mt-1 text-center text-[11px] leading-snug text-slate-400">
+              Tin có thể đã đóng nếu nhà tuyển dụng gỡ sau lần cập nhật gần nhất
             </p>
 
             <dl className="mt-5 space-y-3 text-sm">
