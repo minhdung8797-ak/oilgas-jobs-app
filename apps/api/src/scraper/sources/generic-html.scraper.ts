@@ -263,6 +263,52 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     notes: 'SuccessFactors RMK · xác minh 2026-08-30 · nguồn giàu tin nhất nhóm IOC',
   },
   {
+    key: 'crescent',
+    label: 'Crescent Petroleum Careers',
+    company: 'Crescent Petroleum',
+    companyType: CompanyType.IOC,
+    baseUrl: 'https://careers.crescent.ae',
+    // Lưu ý đường dẫn có tiền tố /CrescentPetroleum, khác các cổng SF khác.
+    searchUrlTemplate: 'https://careers.crescent.ae/CrescentPetroleum/search/?q={keyword}&startrow={page}',
+    keywords: ['reservoir', 'petroleum', 'geologist', 'geophysicist', 'production engineer'],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      card: 'tr.data-row',
+      title: 'a.jobTitle-link',
+      location: 'span.jobLocation',
+      posted: 'span.jobDate',
+      detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
+    },
+    enabled: true,
+    // Xác minh 2026-08-31: 8 tin toàn site, trong đó có "Lead Geologist" (Sharjah, AE).
+    notes: 'SuccessFactors RMK · xác minh 2026-08-31',
+  },
+  {
+    key: 'northoil',
+    label: 'North Oil Company Careers',
+    company: 'North Oil Company',
+    companyType: CompanyType.NOC,
+    baseUrl: 'https://careers.noc.qa',
+    searchUrlTemplate: 'https://careers.noc.qa/search/?q={keyword}&startrow={page}',
+    keywords: ['reservoir', 'petroleum', 'geologist', 'geophysicist', 'production engineer'],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      card: 'tr.data-row',
+      title: 'a.jobTitle-link',
+      location: 'span.jobLocation',
+      posted: 'span.jobDate',
+      detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
+    },
+    enabled: true,
+    // Xác minh 2026-08-31: cổng hoạt động nhưng chỉ có 3 tin toàn site
+    // (Data Architect, Lead Subsea Operations, Controls & Assurance Developee)
+    // và KHÔNG tin nào thuộc 4 nhóm mục tiêu. Vẫn bật vì cấu hình đã đúng,
+    // chỉ tốn 5 request/ngày, có tin mới là tự vào.
+    notes: 'SuccessFactors RMK · hiện chưa có tin thuộc nhóm mục tiêu',
+  },
+  {
     key: 'harbourenergy',
     label: 'Harbour Energy Careers',
     company: 'Harbour Energy',
