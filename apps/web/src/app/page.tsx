@@ -14,8 +14,11 @@ export const metadata: Metadata = {
     'Danh sách việc làm Reservoir, Petroleum, Production và Geoscience & Formation từ các nhà tuyển dụng dầu khí toàn cầu.',
 };
 
-// Trang render lại tối đa mỗi 60s (ISR) – cân bằng giữa độ tươi và chi phí.
-export const revalidate = 60;
+// revalidate = 0: trang luôn dựng lại theo từng request.
+// Mọi lời gọi API bên trong đã dùng `cache: 'no-store'` (xem lib/api.ts) nên
+// Next tự coi trang là động; đặt 0 ở đây chỉ để ý định rõ ràng, tránh người
+// đọc sau tưởng còn ISR. Tải cho API vẫn được chặn bởi header s-maxage phía API.
+export const revalidate = 0;
 
 interface PageProps {
   searchParams: Record<string, string | string[] | undefined>;

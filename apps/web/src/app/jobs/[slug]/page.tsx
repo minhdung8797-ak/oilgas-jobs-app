@@ -13,7 +13,11 @@ import {
   timeAgo,
 } from '@/lib/utils';
 
-export const revalidate = 300;
+// revalidate = 0: trang luôn dựng lại theo từng request.
+// Mọi lời gọi API bên trong đã dùng `cache: 'no-store'` (xem lib/api.ts) nên
+// Next tự coi trang là động; đặt 0 ở đây chỉ để ý định rõ ràng, tránh người
+// đọc sau tưởng còn ISR. Tải cho API vẫn được chặn bởi header s-maxage phía API.
+export const revalidate = 0;
 
 interface PageProps {
   params: { slug: string };

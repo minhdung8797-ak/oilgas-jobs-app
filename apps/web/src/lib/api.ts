@@ -120,16 +120,30 @@ export function isNotFound(err: unknown): boolean {
 const IS_BUILD = process.env.NEXT_PHASE === 'phase-production-build';
 const TIMEOUT_MS = IS_BUILD ? 8_000 : 25_000;
 
-async function request<T>(path: string, revalidate = 60, fallback?: T): Promise<T> {
+/**
+ * KHÔNG dùng Data Cache của Vercel cho bất kỳ lời gọi nào. Tham số `revalidate`
+ * được giữ lại chỉ để không phải sửa mọi nơi gọi, nhưng nó không còn tác dụng.
+ *
+ * Lý do, đã đo bằng chứng cứ hai lần:
+ *
+ * Data Cache khoá theo URL. Mỗi tổ hợp bộ lọc (`?company=eni&pageSize=20`) là
+ * một khoá riêng. Khoá nào được ghi vào lúc API chưa có dữ liệu — ví dụ trước
+ * khi scrape công ty đó — sẽ giữ nguyên bản trả lời RỖNG và **không bao giờ tự
+ * làm mới**, kể cả khi đã quá TTL, kể cả sau khi deploy lại.
+ *
+ * Hậu quả thực tế 2026-08-30: `/?company=eni` hiện "không tìm thấy việc làm"
+ * trong khi API trả về đúng 1 job; đổi `pageSize=20` thành `19` (khoá cache mới)
+ * là ra ngay kết quả đúng. Trước đó trang Công ty cũng đóng băng ở trạng thái
+ * "38 công ty · 0 vị trí" suốt nhiều giờ vì cùng nguyên nhân.
+ *
+ * Đánh đổi: mỗi lần render gọi thẳng API. Chấp nhận được vì chính API đã đặt
+ * `Cache-Control: s-maxage` (xem http-cache.interceptor.ts) nên tầng CDN trước
+ * Render vẫn đỡ tải — và đó là lớp cache DUY NHẤT còn lại, dễ suy luận hơn hẳn.
+ */
+async function request<T>(path: string, _revalidate = 60, fallback?: T): Promise<T> {
   try {
     const res = await fetch(`${API_URL}${path}`, {
-      // revalidate = 0 -> không dùng Data Cache của Vercel.
-      // Data Cache sống dai hơn cả một lần deploy mới và KHÔNG bị "Redeploy
-      // without build cache" xoá, nên một bản trả lời hỏng lọt vào đó sẽ ở lại
-      // rất lâu. Với endpoint danh sách + số đếm thì không đáng đánh đổi.
-      ...(revalidate > 0
-        ? { next: { revalidate } }
-        : { cache: 'no-store' as RequestCache }),
+      cache: 'no-store',
       headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
