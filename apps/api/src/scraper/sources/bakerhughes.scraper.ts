@@ -33,6 +33,7 @@ const TENANT: WorkdayTenant = {
     'well intervention',
     'artificial lift',
     'formation evaluation',
+    'geophysicist',
   ],
 };
 

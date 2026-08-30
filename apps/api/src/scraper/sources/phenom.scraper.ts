@@ -55,7 +55,7 @@ interface PhenomResponse {
   };
 }
 
-const DEFAULT_TERMS = ['reservoir', 'petroleum', 'production engineer', 'geoscience', 'petrophysicist'];
+const DEFAULT_TERMS = ['reservoir', 'petroleum', 'production engineer', 'geoscience', 'petrophysicist', 'geophysicist'];
 const PAGE_SIZE = 20;
 
 export class PhenomScraper extends BaseScraper {
@@ -181,6 +181,6 @@ export const PHENOM_TENANTS: PhenomTenant[] = [
     // ADNOC hiện không có tin nào khớp "reservoir" hay "geologist" (đã kiểm tra
     // 2026-08-30) — kho tuyển của họ nghiêng về vận hành nhà máy. Giữ bộ từ khóa
     // rộng hơn để không bỏ sót khi họ mở tuyển các vị trí thượng nguồn.
-    searchTerms: ['petroleum', 'reservoir', 'production engineer', 'geoscience', 'drilling', 'well'],
+    searchTerms: ['petroleum', 'reservoir', 'production engineer', 'geoscience', 'drilling', 'well', 'geophysicist'],
   },
 ];

@@ -55,7 +55,7 @@ interface JibeResponse {
   totalCount?: number;
 }
 
-const DEFAULT_TERMS = ['reservoir', 'petroleum', 'production engineer', 'geologist', 'petrophysicist'];
+const DEFAULT_TERMS = ['reservoir', 'petroleum', 'production engineer', 'geologist', 'petrophysicist', 'geophysicist'];
 const MAX_PAGES = 3;
 
 export class JibeScraper extends BaseScraper {

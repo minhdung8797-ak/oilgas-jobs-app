@@ -60,7 +60,7 @@ interface OrcResponse {
   }>;
 }
 
-const DEFAULT_TERMS = ['reservoir', 'petroleum', 'production engineer', 'geoscience', 'petrophysicist'];
+const DEFAULT_TERMS = ['reservoir', 'petroleum', 'production engineer', 'geoscience', 'petrophysicist', 'geophysicist'];
 const PAGE_SIZE = 25;
 
 export class OracleOrcScraper extends BaseScraper {
@@ -146,7 +146,7 @@ export const ORACLE_ORC_TENANTS: OracleOrcTenant[] = [
     // Tìm kiếm của Eni quét cả phần mô tả nên trả về khá nhiều tin lạc đề
     // ("ACCOUNTANT" cũng khớp "reservoir"). Không sao: prefilter + classifier
     // sẽ loại chúng, còn giữ từ khóa rộng thì không bỏ sót tin thượng nguồn thật.
-    searchTerms: ['reservoir', 'petroleum', 'geoscience', 'petrophysicist', 'drilling'],
+    searchTerms: ['reservoir', 'petroleum', 'geoscience', 'petrophysicist', 'drilling', 'geophysicist'],
   },
   {
     key: 'petronas',
@@ -161,6 +161,6 @@ export const ORACLE_ORC_TENANTS: OracleOrcTenant[] = [
     // GIẢNG VIÊN tại Universiti Teknologi PETRONAS (Perak) chứ không phải vị trí
     // vận hành. Vẫn bật vì tái dùng nguyên scraper Oracle, không tốn công thêm,
     // và Petronas có thể mở tuyển vị trí kỹ thuật qua đúng cổng này.
-    searchTerms: ['reservoir', 'petroleum', 'geoscience', 'production engineer'],
+    searchTerms: ['reservoir', 'petroleum', 'geoscience', 'production engineer', 'geophysicist'],
   },
 ];

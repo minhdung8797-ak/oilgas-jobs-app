@@ -153,7 +153,7 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     companyType: CompanyType.JOB_BOARD,
     baseUrl: 'https://www.oilandgasjobsearch.com',
     searchUrlTemplate: 'https://www.oilandgasjobsearch.com/jobs?keywords={keyword}&page={page}',
-    keywords: ['reservoir engineer', 'petroleum engineer', 'production engineer', 'geoscience'],
+    keywords: ['reservoir engineer', 'petroleum engineer', 'production engineer', 'geoscience', 'geophysicist'],
     firstPage: 1,
     maxPages: 5,
     selectors: {
@@ -180,7 +180,7 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     companyType: CompanyType.IOC,
     baseUrl: 'https://careers.totalenergies.com',
     searchUrlTemplate: 'https://careers.totalenergies.com/en/search-jobs?keyword={keyword}&page={page}',
-    keywords: ['reservoir', 'petroleum', 'production engineer', 'geoscience'],
+    keywords: ['reservoir', 'petroleum', 'production engineer', 'geoscience', 'geophysicist'],
     firstPage: 1,
     maxPages: 3,
     selectors: {
@@ -207,7 +207,7 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     //                                  "Reservoir Engineer", "Brine Reservoir Engineer"
     // Nhánh /saudi/ dành riêng cho ứng viên Saudi nên không đăng chức danh cụ thể.
     searchUrlTemplate: 'https://careers.aramco.com/search/?q={keyword}&startrow={page}',
-    keywords: ['reservoir', 'petroleum', 'production engineer', 'geologist', 'petrophysicist'],
+    keywords: ['reservoir', 'petroleum', 'production engineer', 'geologist', 'petrophysicist', 'geophysicist'],
     firstPage: 0,
     // maxPages = 1 là CỐ Ý. `{page}` được thay bằng số trang (0,1,2…) nhưng
     // SuccessFactors dùng `startrow` theo bước 25 (0,25,50…). Đặt >1 sẽ gọi
@@ -243,7 +243,7 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     companyType: CompanyType.IOC,
     baseUrl: 'https://jobs.exxonmobil.com',
     searchUrlTemplate: 'https://jobs.exxonmobil.com/search/?q={keyword}&startrow={page}',
-    keywords: ['reservoir', 'petroleum', 'geologist', 'geoscientist', 'production engineer'],
+    keywords: ['reservoir', 'petroleum', 'geologist', 'geoscientist', 'production engineer', 'geophysicist'],
     firstPage: 0,
     // Mỗi trang SuccessFactors trả 25 dòng; "reservoir" hiện ra 24 kết quả nên
     // một trang là đủ. Xem ghi chú ở nguồn aramco về việc {page} không khớp
@@ -269,7 +269,7 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     companyType: CompanyType.IOC,
     baseUrl: 'https://careers.harbourenergy.com',
     searchUrlTemplate: 'https://careers.harbourenergy.com/search/?q={keyword}&startrow={page}',
-    keywords: ['reservoir', 'petroleum', 'production', 'subsurface', 'geoscience'],
+    keywords: ['reservoir', 'petroleum', 'production', 'subsurface', 'geoscience', 'geophysicist'],
     firstPage: 0,
     // Toàn site chỉ có 10 tin -> một trang là đủ. Xem ghi chú ở nguồn aramco
     // về việc {page} không khớp bước nhảy startrow của SuccessFactors.
@@ -293,7 +293,7 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     companyType: CompanyType.IOC,
     baseUrl: 'https://careers.tullowoil.com',
     searchUrlTemplate: 'https://careers.tullowoil.com/search/?q={keyword}&startrow={page}',
-    keywords: ['reservoir', 'petroleum', 'production', 'geoscience'],
+    keywords: ['reservoir', 'petroleum', 'production', 'geoscience', 'geophysicist'],
     firstPage: 0,
     maxPages: 1,
     selectors: {

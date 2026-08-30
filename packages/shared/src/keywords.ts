@@ -136,6 +136,10 @@ export const DISCIPLINE_KEYWORDS: DisciplineDictionary[] = [
       { pattern: '\\bgeoscien(ce|tist)\\b', weight: 10 },
       { pattern: '\\bgeologist\\b', weight: 9 },
       { pattern: '\\bgeophysicist\\b', weight: 10 },
+      // Đối xứng với cặp petrophysicist/petrophysic(s|al) ngay bên dưới:
+      // "Geophysical Analyst", "Geophysics Advisor", "Seismic Geophysics Lead"
+      // trước đây không khớp mẫu nào vì chỉ có dạng danh từ chỉ người.
+      { pattern: '\\bgeophysic(s|al)\\b', weight: 9 },
       { pattern: '\\bpetrophysicist\\b', weight: 10 },
       { pattern: '\\bpetrophysic(s|al)\\b', weight: 9 },
       { pattern: '\\bformation\\s+evaluation\\b', weight: 10 },

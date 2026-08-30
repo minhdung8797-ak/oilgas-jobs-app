@@ -59,7 +59,7 @@ interface WorkdayJobDetail {
   };
 }
 
-const DEFAULT_TERMS = ['reservoir', 'petroleum', 'production engineer', 'geoscience', 'petrophysicist'];
+const DEFAULT_TERMS = ['reservoir', 'petroleum', 'production engineer', 'geoscience', 'petrophysicist', 'geophysicist'];
 const PAGE_SIZE = 20;
 
 export class WorkdayScraper extends BaseScraper {
@@ -267,7 +267,7 @@ export const WORKDAY_TENANTS: WorkdayTenant[] = [
     // graduate; xác minh 2026-08-30 cho 0 kết quả với "reservoir"/"geoscience".
     // Vẫn bật vì endpoint hợp lệ và tin có thể tăng, nhưng đừng kỳ vọng nhiều —
     // phần lớn sẽ bị classifier xếp vào OTHER và tự ẩn khỏi kết quả.
-    searchTerms: ['petroleum', 'reservoir', 'production engineer', 'geoscience', 'well'],
+    searchTerms: ['petroleum', 'reservoir', 'production engineer', 'geoscience', 'well', 'geophysicist'],
   },
 
   // ── Tắt: đã kiểm tra 2026-08-30, các địa chỉ này KHÔNG tồn tại ──
