@@ -230,6 +230,19 @@ export const WORKDAY_TENANTS: WorkdayTenant[] = [
     site: 'Permian_Resources_Careers',
   },
   {
+    key: 'conocophillips',
+    label: 'ConocoPhillips Careers',
+    company: 'ConocoPhillips',
+    companyType: CompanyType.IOC,
+    host: 'https://conocophillips.wd1.myworkdayjobs.com',
+    tenant: 'conocophillips',
+    // Site là 'External', KHÔNG phải 'ConocoPhillips'. Lần đoán trước theo tên
+    // công ty đã trượt; giá trị đúng lấy từ link trên careers.conocophillips.com.
+    site: 'External',
+    // Xác minh 2026-08-30: HTTP 200. Lưu ý kho tin hiện nghiêng hẳn về thực tập
+    // và graduate 2027 — classifier sẽ lọc phần lớn vào OTHER.
+  },
+  {
     key: 'bp',
     label: 'bp Careers',
     company: 'bp',

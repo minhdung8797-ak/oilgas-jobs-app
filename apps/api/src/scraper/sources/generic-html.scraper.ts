@@ -237,6 +237,32 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     notes: 'SuccessFactors RMK · selector đúng nhưng site chặn bot (đo 2026-08-30)',
   },
   {
+    key: 'exxonmobil',
+    label: 'ExxonMobil Careers',
+    company: 'ExxonMobil',
+    companyType: CompanyType.IOC,
+    baseUrl: 'https://jobs.exxonmobil.com',
+    searchUrlTemplate: 'https://jobs.exxonmobil.com/search/?q={keyword}&startrow={page}',
+    keywords: ['reservoir', 'petroleum', 'geologist', 'geoscientist', 'production engineer'],
+    firstPage: 0,
+    // Mỗi trang SuccessFactors trả 25 dòng; "reservoir" hiện ra 24 kết quả nên
+    // một trang là đủ. Xem ghi chú ở nguồn aramco về việc {page} không khớp
+    // bước nhảy startrow.
+    maxPages: 1,
+    selectors: {
+      card: 'tr.data-row',
+      title: 'a.jobTitle-link',
+      location: 'span.jobLocation',
+      posted: 'span.jobDate',
+      detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
+    },
+    enabled: true,
+    // Xác minh 2026-08-30: "reservoir" -> 24 tin gồm Reservoir Engineer –
+    // Technology Development, Reservoir Simulation Engineer, Petroleum Engineer;
+    // "geologist" -> 6 tin gồm Unconventional Operations Geologist.
+    notes: 'SuccessFactors RMK · xác minh 2026-08-30 · nguồn giàu tin nhất nhóm IOC',
+  },
+  {
     key: 'harbourenergy',
     label: 'Harbour Energy Careers',
     company: 'Harbour Energy',
