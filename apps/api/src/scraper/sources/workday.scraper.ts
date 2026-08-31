@@ -263,10 +263,13 @@ export const WORKDAY_TENANTS: WorkdayTenant[] = [
     host: 'https://shell.wd3.myworkdayjobs.com',
     tenant: 'shell',
     site: 'shellcareers',
-    // Site này chỉ có ~12 tin, chủ yếu kỹ thuật viên vận hành và chương trình
-    // graduate; xác minh 2026-08-30 cho 0 kết quả với "reservoir"/"geoscience".
-    // Vẫn bật vì endpoint hợp lệ và tin có thể tăng, nhưng đừng kỳ vọng nhiều —
-    // phần lớn sẽ bị classifier xếp vào OTHER và tự ẩn khỏi kết quả.
+    // Cấu hình này ĐÚNG — đã kiểm lại 2026-08-31, kể cả biến thể viết hoa
+    // 'ShellCareers' (cùng site, cùng kết quả). Toàn công ty chỉ có 11 tin trên
+    // cổng này, và 0 tin cho "reservoir"/"geophysicist": chủ yếu là kỹ thuật viên
+    // vận hành cùng chương trình graduate/internship 2027.
+    //
+    // Nói rõ để khỏi mất công dò lại: con số 0 của Shell là SỰ THẬT về kho tin
+    // của họ, không phải lỗi cấu hình.
     searchTerms: ['petroleum', 'reservoir', 'production engineer', 'geoscience', 'well', 'geophysicist'],
   },
 
@@ -285,8 +288,15 @@ export const WORKDAY_TENANTS: WorkdayTenant[] = [
     companyType: CompanyType.IOC,
     host: 'https://equinor.wd3.myworkdayjobs.com',
     tenant: 'equinor',
-    site: 'Equinor',
-    enabled: false,
+    // Site là 'EQNR', KHÔNG phải 'Equinor'. Lần đoán theo tên công ty năm ngoái
+    // trả về community.workday.com/invalid-url, khiến tôi kết luận nhầm rằng
+    // Equinor "dùng cổng riêng dạng SPA". Giá trị đúng lấy từ link trên
+    // equinor.com/careers. Đây là lần thứ tư đoán tenant theo tên công ty bị sai
+    // (sau bp=bpinternational, ConocoPhillips=External, Chevron=jobs).
+    site: 'EQNR',
+    // Xác minh 2026-08-31: HTTP 200, toàn công ty có 17 tin. Hiện KHÔNG tin nào
+    // thuộc 4 nhóm mục tiêu — chủ yếu là kỹ sư điện/tự động/cơ khí tiếng Na Uy
+    // và vận hành viên tiếng Bồ ở Brazil. Vẫn bật vì cấu hình đã đúng.
   },
   // Weatherford ĐÃ CHUYỂN sang oracle-orc.scraper.ts (Oracle Recruiting Cloud
   // tại careers.weatherford.com, xác minh 2026-08-31). Mục Workday cũ — vốn trỏ

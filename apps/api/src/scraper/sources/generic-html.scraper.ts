@@ -17,6 +17,28 @@ import {
  *  Ưu tiên đọc JSON-LD (schema.org/JobPosting) ở trang chi tiết vì
  *  đó là dữ liệu có cấu trúc, bền vững hơn selector CSS.
  */
+/**
+ * ──────────────────────────────────────────────────────────────
+ *  QUY TẮC CHỌN NGUỒN
+ * ──────────────────────────────────────────────────────────────
+ *  Chỉ nhận TRANG TUYỂN DỤNG CHÍNH THỨC CỦA CÔNG TY. Không nhận job board
+ *  tổng hợp, cũng không nhận công ty tuyển dụng trung gian.
+ *
+ *  Lý do không phải chuyện pháp lý mà là TÍNH ĐÚNG CỦA DỮ LIỆU: app hiển thị
+ *  `defaultCompany` của nguồn ở ô "công ty". Với trung gian, nhà tuyển dụng thật
+ *  bị ẩn danh, nên ô đó sẽ ghi tên công ty tuyển dụng — người tìm việc đọc vào
+ *  sẽ hiểu sai ai đang tuyển mình.
+ *
+ *  Các trường hợp đã xét và LOẠI:
+ *   • rigzone, oilandgasjobsearch — job board, Terms of Use cấm thu thập
+ *   • sofomation (xét 2026-08-31) — công ty tuyển dụng. Trang chi tiết chỉ ghi
+ *     "Domain Industry: Oil & Gas", không nêu tên khách hàng. Ngoài ra 0/6 tin
+ *     thuộc 4 nhóm ngành, tin cũ 6 tháng, và phân trang chạy bằng POST ajax nên
+ *     chỉ lấy được trang đầu.
+ *
+ *  Muốn phá lệ thì phải thêm trường phân biệt "nhà tuyển dụng" với "đơn vị môi
+ *  giới" trong DTO và hiển thị rõ trên giao diện — chưa làm.
+ */
 export interface GenericSourceDef {
   key: string;
   label: string;
@@ -249,6 +271,37 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     // Selector bên dưới đã xác minh đúng, giữ nguyên để dùng lại sau này.
     enabled: false,
     notes: 'SuccessFactors RMK · selector đúng, nhưng Aramco chặn IP trung tâm dữ liệu (đo 2 lần: 939s và 1131s, đều found=0)',
+  },
+  {
+    key: 'totalenergies',
+    label: 'TotalEnergies Careers',
+    company: 'TotalEnergies',
+    companyType: CompanyType.IOC,
+    baseUrl: 'https://jobs.totalenergies.com',
+    // Nền tảng Avature. Ba cái bẫy, đều đã trả giá để tìm ra:
+    //  1. careers.totalenergies.com chỉ là trang giới thiệu, không có tin nào.
+    //  2. Gõ thẳng jobs.totalenergies.com sẽ bị đá sang đăng nhập Microsoft —
+    //     đó là cổng NỘI BỘ. Đường dẫn /en_US/careers/ mới là cổng công khai.
+    //  3. Tham số tìm kiếm là `search`, KHÔNG phải `keyword`. Dùng `keyword` thì
+    //     server im lặng bỏ qua và luôn trả về 20 tin mới nhất — trông như đang
+    //     chạy đúng nhưng thực chất mọi từ khoá cho cùng kết quả.
+    searchUrlTemplate: 'https://jobs.totalenergies.com/en_US/careers/SearchJobs/?search={keyword}',
+    keywords: ['reservoir', 'petroleum', 'geologist', 'geophysicist', 'production engineer'],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      card: 'div.article--result',
+      title: 'a',
+      location: '.list-item-jobCountry',
+      posted: '.list-item-jobCreationDate',
+      detailBody: '.article__content, .job-description, [itemprop="description"]',
+    },
+    enabled: true,
+    // Xác minh 2026-08-31: "geophysicist" -> Senior Geophysicist Redetermination,
+    // Petrophysicist; "reservoir" -> Ingénieur Réservoir, Géophysicien.
+    // Phần lớn tin bằng TIẾNG PHÁP — chỉ phân loại đúng nhờ normalizeText đã bỏ
+    // dấu (xem packages/shared/src/utils.ts).
+    notes: 'Avature · tham số là `search` · nhiều tin tiếng Pháp',
   },
   {
     key: 'halliburton',

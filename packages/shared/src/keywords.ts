@@ -31,6 +31,11 @@ export const DISCIPLINE_KEYWORDS: DisciplineDictionary[] = [
     titleBoost: 2.0,
     keywords: [
       { pattern: '\\breservoir\\s+engineer(ing|s)?\\b', weight: 10 },
+      // Tiếng Pháp đảo trật tự danh từ: "Ingénieur Réservoir" chứ không phải
+      // "Reservoir Engineer". Thêm sau khi bổ sung TotalEnergies (2026-08-31) —
+      // phần lớn tin của họ bằng tiếng Pháp. normalizeText đã bỏ dấu nên chỉ cần
+      // viết dạng không dấu.
+      { pattern: '\\bingenieur\\s+reservoir\\b', weight: 10 },
       { pattern: '\\bsenior\\s+reservoir\\b', weight: 10 },
       { pattern: '\\breservoir\\s+(simulation|modell?ing|management|characteri[sz]ation)\\b', weight: 9 },
       { pattern: '\\bdynamic\\s+(reservoir\\s+)?modell?ing\\b', weight: 7 },
@@ -67,7 +72,11 @@ export const DISCIPLINE_KEYWORDS: DisciplineDictionary[] = [
       { pattern: '\\bpetroleum\\s+engineer(ing|s)?\\b', weight: 10 },
       { pattern: '\\bdrilling\\s+engineer(ing|s)?\\b', weight: 9 },
       { pattern: '\\bcompletion(s)?\\s+engineer(ing|s)?\\b', weight: 9 },
-      { pattern: '\\bwell\\s+engineer(ing|s)?\\b', weight: 9 },
+      // `wells?` chứ không phải `well`: "Drilling & Wells Engineer" của
+      // TotalEnergies từng ra 0 điểm chỉ vì thiếu chữ "s". Đây là lỗ hổng với
+      // TIẾNG ANH, không riêng gì tiếng Pháp.
+      { pattern: '\\bwells?\\s+engineer(ing|s)?\\b', weight: 9 },
+      { pattern: '\\bingenieur\\s+(forage|puits)\\b', weight: 9 },
       { pattern: '\\bwell\\s*bore\\s+(design|stability)\\b', weight: 7 },
       { pattern: '\\b(drilling|well)\\s+(supervisor|superintendent)\\b', weight: 7 },
       { pattern: '\\bdrilling\\s+(fluids?|optimi[sz]ation|programme?|operations)\\b', weight: 6 },
@@ -140,6 +149,13 @@ export const DISCIPLINE_KEYWORDS: DisciplineDictionary[] = [
       // "Geophysical Analyst", "Geophysics Advisor", "Seismic Geophysics Lead"
       // trước đây không khớp mẫu nào vì chỉ có dạng danh từ chỉ người.
       { pattern: '\\bgeophysic(s|al)\\b', weight: 9 },
+      // Dạng tiếng Pháp (đã bỏ dấu): géophysicien, géologue, géoscientifique,
+      // sédimentologue, pétrophysicien.
+      { pattern: '\\bgeophysicien(ne)?s?\\b', weight: 10 },
+      { pattern: '\\bgeologue?s?\\b', weight: 9 },
+      { pattern: '\\bgeoscientifiques?\\b', weight: 10 },
+      { pattern: '\\bsedimentologues?\\b', weight: 9 },
+      { pattern: '\\bpetrophysicien(ne)?s?\\b', weight: 10 },
       { pattern: '\\bpetrophysicist\\b', weight: 10 },
       { pattern: '\\bpetrophysic(s|al)\\b', weight: 9 },
       { pattern: '\\bformation\\s+evaluation\\b', weight: 10 },
@@ -216,6 +232,9 @@ export const PREFILTER_TERMS: string[] = [
   'geolog', 'geophys', 'petrophys', 'geoscien', 'formation evaluation',
   'seismic', 'subsurface', 'artificial lift', 'gas lift', 'flow assurance',
   'nodal', 'stimulation', 'frac', 'wireline', 'log analyst', 'field development',
+  // Dạng tiếng Pháp (so khớp sau khi normalizeText đã bỏ dấu). Thiếu chúng thì
+  // "Sédimentologue" trượt ngay ở cửa prefilter, không bao giờ tới được classifier.
+  'sediment', 'ingenieur reservoir', 'geoscientifique',
 ];
 
 /** Kỹ năng/phần mềm cần trích xuất để lưu vào bảng skills. */

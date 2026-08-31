@@ -1,9 +1,23 @@
 import { createHash } from 'crypto';
 
-/** Chuẩn hóa text để matching regex: bỏ HTML, lowercase, gộp khoảng trắng. */
+/**
+ * Chuẩn hóa text để matching regex: bỏ HTML, BỎ DẤU, lowercase, gộp khoảng trắng.
+ *
+ * Bỏ dấu là bắt buộc, không phải làm cho đẹp: từ điển classifier viết bằng tiếng
+ * Anh không dấu, nên "Ingénieur Réservoir" KHÔNG khớp mẫu `\breservoir\b` và bị
+ * xếp nhầm vào OTHER. Phát hiện khi thêm TotalEnergies (2026-08-31) — cổng của
+ * họ đăng phần lớn tin bằng tiếng Pháp: Géophysicien, Géologue, Sédimentologue.
+ * Cùng vấn đề với tiếng Tây Ban Nha và Bồ Đào Nha ở các nguồn Mỹ Latinh.
+ *
+ * An toàn vì hàm này CHỈ dùng để so khớp và cho `titleNormalized` (cột full-text
+ * search) — tiêu đề hiển thị cho người dùng lấy từ trường `title` gốc, còn nguyên dấu.
+ */
 export function normalizeText(input: string | null | undefined): string {
   if (!input) return '';
   return input
+    // NFD tách chữ cái khỏi dấu, rồi xoá toàn bộ dấu tổ hợp (U+0300–U+036F)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<[^>]*>/g, ' ')
