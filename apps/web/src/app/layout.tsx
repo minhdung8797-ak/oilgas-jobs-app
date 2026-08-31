@@ -1,5 +1,7 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { LangToggle } from '@/components/LangToggle';
 import './globals.css';
 
 // Dùng system font stack thay vì next/font/google: build không phụ thuộc mạng
@@ -71,6 +73,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               >
                 API
               </a>
+              {/*
+                Nhãn "Việc làm" / "Công ty" ở trên GIỮ NGUYÊN tiếng Việt: layout
+                không nhận searchParams nên không biết `?lang=`, và không có cách
+                dịch chúng ở đây mà không đẩy layout thành Client Component.
+
+                Suspense là bắt buộc: `useSearchParams` bên trong LangToggle sẽ
+                khiến toàn bộ cây bị đẩy sang client-render nếu không có ranh giới.
+              */}
+              <Suspense fallback={<div className="h-8 w-[74px]" />}>
+                <LangToggle />
+              </Suspense>
             </nav>
           </div>
         </header>

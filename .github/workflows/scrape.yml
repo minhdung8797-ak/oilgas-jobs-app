@@ -65,6 +65,14 @@ jobs:
       CLASSIFIER_MIN_MARGIN: '2'
       HF_ENABLED: 'false'
       JOB_TTL_DAYS: '60'
+      # Ép bật các nguồn chặn IP trung tâm dữ liệu của Render nhưng CÓ THỂ vào
+      # được từ dải IP của GitHub Actions. Aramco đã đo: từ Render mọi request
+      # treo tới hết giờ (2 lần, 939s và 1131s, đều found=0); từ IP dân dụng thì
+      # phản hồi trong nửa giây. Actions chạy trên hạ tầng khác nên đáng thử.
+      #
+      # Nếu lần chạy hằng ngày cho thấy aramco vẫn found=0 kèm thời gian dài,
+      # nghĩa là Actions cũng bị chặn -> xoá key khỏi dòng này.
+      SCRAPER_FORCE_SOURCES: 'aramco'
 
     steps:
       - name: Kiểm tra đã có DATABASE_URL chưa

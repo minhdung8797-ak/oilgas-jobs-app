@@ -50,8 +50,31 @@ export class ScraperRegistry {
     return this.scrapers;
   }
 
+  /**
+   * Nguồn bật theo cấu hình, CỘNG THÊM những nguồn được ép bật qua biến môi trường
+   * `SCRAPER_FORCE_SOURCES` (danh sách key, ngăn cách bằng dấu phẩy).
+   *
+   * Vì sao cần: một số nguồn chặn theo ĐỊA CHỈ IP TRUNG TÂM DỮ LIỆU chứ không
+   * chặn bot nói chung. Aramco là ví dụ đã đo được — từ Render (Oregon) thì mọi
+   * request treo tới hết giờ, nhưng từ trình duyệt IP dân dụng lại phản hồi
+   * trong nửa giây.
+   *
+   * GitHub Actions chạy trên dải IP KHÁC HẲN Render. Nên thay vì tắt vĩnh viễn,
+   * ta để nguồn đó `enabled: false` (API trên Render không đụng tới) rồi ép bật
+   * riêng trong workflow hằng ngày. Nếu Actions vào được thì có dữ liệu; nếu
+   * không thì cũng chỉ tốn vài phút của Actions, API không bị ảnh hưởng.
+   *
+   * Đặt biến này trên Render là vô nghĩa và sẽ làm mọi lần scrape chậm thêm
+   * ~19 phút — xem ghi chú ở nguồn `aramco`.
+   */
   enabled(): BaseScraper[] {
-    return this.scrapers.filter((s) => s.config.enabled);
+    const forced = new Set(
+      (process.env.SCRAPER_FORCE_SOURCES ?? '')
+        .split(',')
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean),
+    );
+    return this.scrapers.filter((s) => s.config.enabled || forced.has(s.config.key));
   }
 
   get(key: string): BaseScraper | undefined {

@@ -5,7 +5,11 @@ export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
 
-/** "3 ngày trước" – hiển thị thân thiện, tính ở client-safe cách (không lệch SSR). */
+/**
+ * "3 ngày trước" – hiển thị thân thiện, tính ở client-safe cách (không lệch SSR).
+ * Chỉ tiếng Việt. Bản song ngữ: `timeAgoI18n(iso, lang)` trong `lib/i18n.ts` —
+ * mọi chỗ hiển thị nên dùng bản đó.
+ */
 export function timeAgo(iso: string | null): string {
   if (!iso) return 'Không rõ ngày';
   const diff = Date.now() - new Date(iso).getTime();
@@ -54,6 +58,7 @@ export const DISCIPLINE_STYLE: Record<string, { label: string; short: string; cl
   },
 };
 
+/** Chỉ tiếng Việt. Bản song ngữ: `WORK_MODE_I18N` trong `lib/i18n.ts` — mọi chỗ hiển thị nên dùng bản đó. */
 export const WORK_MODE_LABEL: Record<string, string> = {
   ONSITE: 'Tại chỗ',
   OFFSHORE: 'Ngoài khơi',
@@ -63,6 +68,7 @@ export const WORK_MODE_LABEL: Record<string, string> = {
   UNKNOWN: '—',
 };
 
+/** Chỉ tiếng Việt. Bản song ngữ: `EMPLOYMENT_I18N` trong `lib/i18n.ts` — mọi chỗ hiển thị nên dùng bản đó. */
 export const EMPLOYMENT_LABEL: Record<string, string> = {
   FULL_TIME: 'Toàn thời gian',
   PART_TIME: 'Bán thời gian',
@@ -73,6 +79,7 @@ export const EMPLOYMENT_LABEL: Record<string, string> = {
   UNKNOWN: '—',
 };
 
+/** Chỉ tiếng Việt. Bản song ngữ: `SENIORITY_I18N` trong `lib/i18n.ts` — mọi chỗ hiển thị nên dùng bản đó. */
 export const SENIORITY_LABEL: Record<string, string> = {
   INTERN: 'Thực tập sinh',
   ENTRY: 'Mới vào nghề',

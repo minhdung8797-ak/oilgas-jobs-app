@@ -2,14 +2,18 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { t, type Lang } from '@/lib/i18n';
 
 interface Props {
   page: number;
   totalPages: number;
   total: number;
+  /** Nhận qua prop từ trang cha — component này không tự đọc `?lang=`. */
+  lang?: Lang;
 }
 
-export function Pagination({ page, totalPages, total }: Props) {
+export function Pagination({ page, totalPages, total, lang = 'vi' }: Props) {
+  const tr = t(lang);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -34,12 +38,23 @@ export function Pagination({ page, totalPages, total }: Props) {
   if (totalPages > 1) push(totalPages);
 
   return (
-    <nav className="mt-8 flex flex-wrap items-center justify-between gap-4" aria-label="Phân trang">
+    <nav
+      className="mt-8 flex flex-wrap items-center justify-between gap-4"
+      aria-label={tr('paginationAria')}
+    >
       <p className="text-sm text-slate-500">
-        Trang <strong>{page}</strong> / {totalPages} · {total.toLocaleString('vi-VN')} việc làm
+        {tr('page')} <strong>{page}</strong> / {totalPages} · {total.toLocaleString('vi-VN')}{' '}
+        {tr('jobsWord')}
       </p>
       <div className="flex items-center gap-1">
-        <button onClick={() => go(page - 1)} disabled={page <= 1} className="btn-ghost px-3 py-1.5">
+        {/* Nút chỉ có ký tự ← → nên bắt buộc phải có aria-label: trình đọc màn
+            hình đọc mũi tên thành "trái"/"phải" hoặc bỏ qua hẳn. */}
+        <button
+          onClick={() => go(page - 1)}
+          disabled={page <= 1}
+          aria-label={tr('prevPage')}
+          className="btn-ghost px-3 py-1.5"
+        >
           ←
         </button>
         {pages.map((p, i) =>
@@ -65,6 +80,7 @@ export function Pagination({ page, totalPages, total }: Props) {
         <button
           onClick={() => go(page + 1)}
           disabled={page >= totalPages}
+          aria-label={tr('nextPage')}
           className="btn-ghost px-3 py-1.5"
         >
           →

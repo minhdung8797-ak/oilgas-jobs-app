@@ -3,10 +3,20 @@
 import { useCallback, useMemo, useState, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { JobFacets } from '@og/shared';
-import { DISCIPLINE_STYLE, EMPLOYMENT_LABEL, SENIORITY_LABEL, WORK_MODE_LABEL, cn } from '@/lib/utils';
+import { DISCIPLINE_STYLE, cn } from '@/lib/utils';
+import {
+  DISCIPLINE_LABEL_I18N,
+  EMPLOYMENT_I18N,
+  SENIORITY_I18N,
+  WORK_MODE_I18N,
+  t,
+  type Lang,
+} from '@/lib/i18n';
 
 interface Props {
   facets: JobFacets;
+  /** Nhận qua prop từ Server Component cha — component này không tự đọc `?lang=`. */
+  lang: Lang;
 }
 
 /**
@@ -17,7 +27,8 @@ interface Props {
  *  • Server Component đọc thẳng searchParams -> render sẵn HTML, tốt cho SEO
  * useTransition giữ UI phản hồi trong lúc server render lại danh sách.
  */
-export function FilterSidebar({ facets }: Props) {
+export function FilterSidebar({ facets, lang }: Props) {
+  const tr = t(lang);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -69,6 +80,38 @@ export function FilterSidebar({ facets }: Props) {
     [pushParams],
   );
 
+  /** Không có tham số `country` trong URL = đang xem tất cả các nước. */
+  const allCountries = current.country.length === 0;
+
+  const selectAllCountries = useCallback(() => {
+    pushParams((params) => params.delete('country'));
+  }, [pushParams]);
+
+  /**
+   * Bỏ tick một nước khi đang ở trạng thái "tất cả" sẽ ghi ra danh sách MỌI nước
+   * trừ nước đó — vì API chỉ hiểu danh sách bao gồm, không hiểu danh sách loại trừ.
+   *
+   * Ngược lại, khi tick lại đủ hết các nước thì xoá hẳn tham số thay vì liệt kê
+   * toàn bộ. Giữ URL ngắn, và quan trọng hơn: nước mới xuất hiện sau này sẽ tự
+   * động được bao gồm, thay vì bị bỏ sót vì không nằm trong danh sách cũ.
+   */
+  const toggleCountry = useCallback(
+    (value: string) => {
+      const all = facets.countries.map((c) => c.value);
+      pushParams((params) => {
+        const selected = allCountries
+          ? new Set(all)
+          : new Set((params.get('country') ?? '').split(',').filter(Boolean));
+        if (selected.has(value)) selected.delete(value);
+        else selected.add(value);
+
+        if (selected.size === 0 || selected.size === all.length) params.delete('country');
+        else params.set('country', Array.from(selected).join(','));
+      });
+    },
+    [allCountries, facets.countries, pushParams],
+  );
+
   const setSingle = useCallback(
     (key: string, value: string) => {
       pushParams((params) => {
@@ -80,9 +123,15 @@ export function FilterSidebar({ facets }: Props) {
   );
 
   const clearAll = useCallback(() => {
+    // Giữ lại `q` và `lang`: cả hai đều KHÔNG phải bộ lọc. Nếu xoá `lang` thì
+    // bấm "Xóa tất cả" sẽ vô tình đẩy người dùng về tiếng Việt.
+    const keep = new URLSearchParams();
     const q = searchParams.get('q');
+    if (q) keep.set('q', q);
+    if (searchParams.get('lang') === 'en') keep.set('lang', 'en');
+    const qs = keep.toString();
     startTransition(() => {
-      router.push(q ? `${pathname}?q=${encodeURIComponent(q)}` : pathname, { scroll: false });
+      router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     });
   }, [pathname, router, searchParams]);
 
@@ -107,20 +156,22 @@ export function FilterSidebar({ facets }: Props) {
       aria-busy={isPending}
     >
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Bộ lọc</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          {tr('filters')}
+        </h2>
         {activeCount > 0 && (
           <button onClick={clearAll} className="text-xs font-medium text-brand-600 hover:underline">
-            Xóa tất cả ({activeCount})
+            {tr('clearAll')} ({activeCount})
           </button>
         )}
       </div>
 
       {/* ── Nhóm ngành ── */}
-      <FilterGroup title="Nhóm ngành">
+      <FilterGroup title={tr('discipline')}>
         {facets.disciplines.map((d) => (
           <CheckRow
             key={d.value}
-            label={DISCIPLINE_STYLE[d.value]?.label ?? d.label}
+            label={DISCIPLINE_LABEL_I18N[d.value]?.[lang] ?? DISCIPLINE_STYLE[d.value]?.label ?? d.label}
             count={d.count}
             checked={current.discipline.includes(d.value)}
             onChange={() => toggle('discipline', d.value)}
@@ -129,13 +180,13 @@ export function FilterSidebar({ facets }: Props) {
       </FilterGroup>
 
       {/* ── Thời gian đăng ── */}
-      <FilterGroup title="Thời gian đăng">
+      <FilterGroup title={tr('postedWithin')}>
         <div className="grid grid-cols-2 gap-2">
           {[
-            { v: '1', l: '24 giờ' },
-            { v: '7', l: '7 ngày' },
-            { v: '30', l: '30 ngày' },
-            { v: '90', l: '90 ngày' },
+            { v: '1', l: tr('h24') },
+            { v: '7', l: tr('d7') },
+            { v: '30', l: tr('d30') },
+            { v: '90', l: tr('d90') },
           ].map((o) => (
             <button
               key={o.v}
@@ -153,15 +204,31 @@ export function FilterSidebar({ facets }: Props) {
         </div>
       </FilterGroup>
 
-      {/* ── Quốc gia ── */}
-      <FilterGroup title="Quốc gia">
+      {/* ── Quốc gia ──
+          Khác với các nhóm lọc còn lại: mặc định coi như ĐÃ CHỌN HẾT, người dùng
+          bỏ tick nước không muốn. Cách này hợp với thói quen thực tế — người tìm
+          việc thường muốn xem mọi nơi rồi loại vài nước, chứ hiếm khi tick từng
+          nước một trong danh sách hơn chục mục.
+
+          Bên dưới, `country` rỗng trong URL vẫn nghĩa là "không lọc" — API không
+          đổi gì. Chỗ khác biệt chỉ nằm ở cách hiển thị và ở hành vi lần bỏ tick
+          đầu tiên: nó ghi ra danh sách mọi nước TRỪ nước vừa bỏ. */}
+      <FilterGroup title={tr('country')}>
+        <CheckRow
+          label={tr('allCountries')}
+          count={facets.countries.reduce((s, c) => s + c.count, 0)}
+          checked={allCountries}
+          disabled={allCountries}
+          onChange={selectAllCountries}
+        />
+        <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
         {(showAllCountries ? facets.countries : facets.countries.slice(0, 10)).map((c) => (
           <CheckRow
             key={c.value}
             label={c.label}
             count={c.count}
-            checked={current.country.includes(c.value)}
-            onChange={() => toggle('country', c.value)}
+            checked={allCountries || current.country.includes(c.value)}
+            onChange={() => toggleCountry(c.value)}
           />
         ))}
         {facets.countries.length > 10 && (
@@ -169,13 +236,15 @@ export function FilterSidebar({ facets }: Props) {
             onClick={() => setShowAllCountries((s) => !s)}
             className="mt-1 text-xs font-medium text-brand-600 hover:underline"
           >
-            {showAllCountries ? 'Thu gọn' : `Xem thêm ${facets.countries.length - 10} quốc gia`}
+            {showAllCountries
+              ? tr('collapse')
+              : `${tr('showMore')} ${facets.countries.length - 10} ${tr('showMoreSuffix')}`}
           </button>
         )}
       </FilterGroup>
 
       {/* ── Công ty ── */}
-      <FilterGroup title="Công ty">
+      <FilterGroup title={tr('company')}>
         {(showAllCompanies ? facets.companies : facets.companies.slice(0, 8)).map((c) => (
           <CheckRow
             key={c.value}
@@ -190,19 +259,21 @@ export function FilterSidebar({ facets }: Props) {
             onClick={() => setShowAllCompanies((s) => !s)}
             className="mt-1 text-xs font-medium text-brand-600 hover:underline"
           >
-            {showAllCompanies ? 'Thu gọn' : `Xem thêm ${facets.companies.length - 8} công ty`}
+            {showAllCompanies
+              ? tr('collapse')
+              : `${tr('showMore')} ${facets.companies.length - 8} ${tr('showMoreSuffixCompanies')}`}
           </button>
         )}
       </FilterGroup>
 
       {/* ── Hình thức làm việc ── */}
-      <FilterGroup title="Hình thức làm việc">
+      <FilterGroup title={tr('workMode')}>
         {facets.workModes
           .filter((w) => w.value !== 'UNKNOWN')
           .map((w) => (
             <CheckRow
               key={w.value}
-              label={WORK_MODE_LABEL[w.value] ?? w.label}
+              label={WORK_MODE_I18N[w.value]?.[lang] ?? w.label}
               count={w.count}
               checked={current.workMode.includes(w.value)}
               onChange={() => toggle('workMode', w.value)}
@@ -211,13 +282,13 @@ export function FilterSidebar({ facets }: Props) {
       </FilterGroup>
 
       {/* ── Loại hợp đồng ── */}
-      <FilterGroup title="Loại hợp đồng">
+      <FilterGroup title={tr('employmentType')}>
         {facets.employmentTypes
           .filter((e) => e.value !== 'UNKNOWN')
           .map((e) => (
             <CheckRow
               key={e.value}
-              label={EMPLOYMENT_LABEL[e.value] ?? e.label}
+              label={EMPLOYMENT_I18N[e.value]?.[lang] ?? e.label}
               count={e.count}
               checked={current.employmentType.includes(e.value)}
               onChange={() => toggle('employmentType', e.value)}
@@ -226,13 +297,13 @@ export function FilterSidebar({ facets }: Props) {
       </FilterGroup>
 
       {/* ── Cấp bậc ── */}
-      <FilterGroup title="Cấp bậc">
+      <FilterGroup title={tr('seniority')}>
         {facets.seniorities
           .filter((s) => s.value !== 'UNKNOWN')
           .map((s) => (
             <CheckRow
               key={s.value}
-              label={SENIORITY_LABEL[s.value] ?? s.label}
+              label={SENIORITY_I18N[s.value]?.[lang] ?? s.label}
               count={s.count}
               checked={current.seniority.includes(s.value)}
               onChange={() => toggle('seniority', s.value)}
@@ -241,13 +312,13 @@ export function FilterSidebar({ facets }: Props) {
       </FilterGroup>
 
       {/* ── Lương ── */}
-      <FilterGroup title="Lương (USD/năm quy đổi)">
+      <FilterGroup title={tr('salary')}>
         <select
           className="input"
           value={current.salaryMinUsd}
           onChange={(e) => setSingle('salaryMinUsd', e.target.value)}
         >
-          <option value="">Bất kỳ</option>
+          <option value="">{tr('salaryAny')}</option>
           <option value="50000">≥ $50k</option>
           <option value="80000">≥ $80k</option>
           <option value="120000">≥ $120k</option>
@@ -261,12 +332,12 @@ export function FilterSidebar({ facets }: Props) {
             checked={current.hasSalary}
             onChange={() => setSingle('hasSalary', current.hasSalary ? '' : 'true')}
           />
-          Chỉ job công bố lương
+          {tr('hasSalaryOnly')}
         </label>
       </FilterGroup>
 
       {/* ── Nguồn ── */}
-      <FilterGroup title="Nguồn dữ liệu">
+      <FilterGroup title={tr('source')}>
         {facets.sources.map((s) => (
           <CheckRow
             key={s.value}
@@ -295,19 +366,29 @@ function CheckRow({
   count,
   checked,
   onChange,
+  disabled = false,
 }: {
   label: string;
   count: number;
   checked: boolean;
   onChange: () => void;
+  disabled?: boolean;
 }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-2 rounded px-1 py-0.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800">
+    <label
+      className={cn(
+        'flex items-center justify-between gap-2 rounded px-1 py-0.5 text-sm',
+        disabled
+          ? 'cursor-default opacity-70'
+          : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800',
+      )}
+    >
       <span className="flex min-w-0 items-center gap-2">
         <input
           type="checkbox"
           checked={checked}
           onChange={onChange}
+          disabled={disabled}
           className="h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
         />
         <span className="truncate text-slate-700 dark:text-slate-300">{label}</span>

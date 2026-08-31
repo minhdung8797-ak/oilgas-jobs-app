@@ -7,6 +7,7 @@ import { SearchBar } from '@/components/SearchBar';
 import { Pagination } from '@/components/Pagination';
 import { EmptyState } from '@/components/EmptyState';
 import { StatsBar } from '@/components/StatsBar';
+import { parseLang, t } from '@/lib/i18n';
 
 export const metadata: Metadata = {
   title: 'Việc làm dầu khí quốc tế',
@@ -27,6 +28,12 @@ interface PageProps {
 export default async function HomePage({ searchParams }: PageProps) {
   const filters = parseFilters(searchParams);
 
+  // Ngôn ngữ đọc thẳng từ URL: Server Component render sẵn đúng thứ tiếng, không
+  // có cảnh chớp tiếng Việt rồi mới đổi. `lang` được truyền xuống mọi Client
+  // Component bằng prop — chúng KHÔNG tự đọc searchParams cho việc này.
+  const lang = parseLang(searchParams.lang);
+  const tr = t(lang);
+
   // Gọi song song: danh sách + facets. Lỗi 1 bên không làm sập cả trang.
   const [jobsResult, facets] = await Promise.all([
     api.jobs(filters).catch(() => null),
@@ -35,7 +42,8 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   // `api.jobs` và `api.facets` đều có dữ liệu rỗng dự phòng nên KHÔNG BAO GIỜ
   // throw — nhánh này là code chết, giữ lại chỉ để TypeScript yên tâm.
-  if (!jobsResult || !facets) return <EmptyState title="Không tải được dữ liệu" />;
+  if (!jobsResult || !facets)
+    return <EmptyState lang={lang} title="Không tải được dữ liệu" />;
 
   // Danh sách rỗng có hai nguyên nhân hoàn toàn khác nhau, và người dùng cần
   // biết mình đang gặp cái nào:
@@ -47,45 +55,38 @@ export default async function HomePage({ searchParams }: PageProps) {
   return (
     <div className="space-y-6">
       <section className="rounded-2xl bg-gradient-to-br from-brand-700 to-brand-950 px-6 py-10 text-white">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Việc làm dầu khí quốc tế, đã lọc sẵn cho bạn
-        </h1>
-        <p className="mt-2 max-w-2xl text-brand-100">
-          Thu thập tự động từ trang tuyển dụng chính thức của Baker Hughes, Chevron, bp, Shell,
-          Eni, ADNOC, QatarEnergy, Occidental và nhiều công ty khác, rồi phân loại bằng NLP vào
-          4 nhóm: Reservoir · Petroleum · Production · Geoscience &amp; Formation.
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{tr('heroTitle')}</h1>
+        <p className="mt-2 max-w-2xl text-brand-100">{tr('heroBody')}</p>
         <p className="mt-4 text-sm text-brand-200">
-          Hiện có <strong className="text-white">{facets.total.toLocaleString('vi-VN')}</strong> vị trí đang mở.
+          {tr('heroCount')}{' '}
+          <strong className="text-white">{facets.total.toLocaleString('vi-VN')}</strong>{' '}
+          {tr('heroCountSuffix')}
         </p>
       </section>
 
-      <StatsBar facets={facets} />
+      <StatsBar facets={facets} lang={lang} />
 
       <Suspense fallback={<div className="skeleton h-10 w-full" />}>
-        <SearchBar />
+        <SearchBar lang={lang} />
       </Suspense>
 
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
         <Suspense fallback={<div className="skeleton h-[600px] w-full rounded-xl" />}>
-          <FilterSidebar facets={facets} />
+          <FilterSidebar facets={facets} lang={lang} />
         </Suspense>
 
         <div>
           {jobsResult.data.length === 0 ? (
             apiAlive ? (
-              <EmptyState />
+              <EmptyState lang={lang} title={tr('emptyTitle')} hint={tr('emptyHint')} />
             ) : (
-              <EmptyState
-                title="Máy chủ đang khởi động"
-                hint="Máy chủ chạy trên gói miễn phí nên tự ngủ khi không có ai truy cập, và cần khoảng 60 giây để thức dậy. Chờ một lát rồi tải lại trang."
-              />
+              <EmptyState lang={lang} title={tr('wakingTitle')} hint={tr('wakingHint')} />
             )
           ) : (
             <>
               <div className="space-y-3">
                 {jobsResult.data.map((job) => (
-                  <JobCard key={job.id} job={job} />
+                  <JobCard key={job.id} job={job} lang={lang} />
                 ))}
               </div>
               <Suspense fallback={null}>
@@ -93,6 +94,7 @@ export default async function HomePage({ searchParams }: PageProps) {
                   page={jobsResult.meta.page}
                   totalPages={jobsResult.meta.totalPages}
                   total={jobsResult.meta.total}
+                  lang={lang}
                 />
               </Suspense>
             </>

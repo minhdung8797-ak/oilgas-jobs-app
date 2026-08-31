@@ -3,15 +3,15 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { api, isNotFound } from '@/lib/api';
 import { JobCard } from '@/components/JobCard';
+import { DISCIPLINE_STYLE, cn, formatUsd } from '@/lib/utils';
 import {
-  DISCIPLINE_STYLE,
-  EMPLOYMENT_LABEL,
-  SENIORITY_LABEL,
-  WORK_MODE_LABEL,
-  cn,
-  formatUsd,
-  timeAgo,
-} from '@/lib/utils';
+  EMPLOYMENT_I18N,
+  SENIORITY_I18N,
+  WORK_MODE_I18N,
+  parseLang,
+  t,
+  timeAgoI18n,
+} from '@/lib/i18n';
 
 // revalidate = 0: trang luôn dựng lại theo từng request.
 // Mọi lời gọi API bên trong đã dùng `cache: 'no-store'` (xem lib/api.ts) nên
@@ -21,6 +21,9 @@ export const revalidate = 0;
 
 interface PageProps {
   params: { slug: string };
+  // `generateMetadata` không dùng tới, nhưng Next truyền vào cả hai nên khai báo
+  // chung một kiểu là đủ.
+  searchParams?: Record<string, string | string[] | undefined>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -40,7 +43,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function JobDetailPage({ params }: PageProps) {
+export default async function JobDetailPage({ params, searchParams }: PageProps) {
+  const lang = parseLang(searchParams?.lang);
+  const tr = t(lang);
+
   // Chỉ 404 THẬT mới gọi notFound(). Lỗi mạng / API ngủ / hết 25 giây thì để lỗi
   // nổi lên cho error.tsx xử lý — ở đó có nút "Thử lại".
   //
@@ -108,8 +114,9 @@ export default async function JobDetailPage({ params }: PageProps) {
       />
 
       <nav className="text-sm text-slate-500">
-        <Link href="/" className="hover:text-brand-700">
-          Việc làm
+        {/* Giữ `lang` trong link quay lại để không rơi ngược về tiếng Việt. */}
+        <Link href={lang === 'en' ? '/?lang=en' : '/'} className="hover:text-brand-700">
+          {tr('navJobs')}
         </Link>
         <span className="mx-2">/</span>
         <span className="text-slate-700 dark:text-slate-300">{job.title}</span>
@@ -122,12 +129,12 @@ export default async function JobDetailPage({ params }: PageProps) {
             <span className={cn('badge', style.className)}>{style.label}</span>
             {job.workMode !== 'UNKNOWN' && (
               <span className="badge bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
-                {WORK_MODE_LABEL[job.workMode]}
+                {WORK_MODE_I18N[job.workMode]?.[lang] ?? job.workMode}
               </span>
             )}
             {job.rotation && (
               <span className="badge bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
-                Luân ca {job.rotation}
+                {lang === 'en' ? 'Rotation' : 'Luân ca'} {job.rotation}
               </span>
             )}
           </div>
@@ -138,9 +145,10 @@ export default async function JobDetailPage({ params }: PageProps) {
 
           <p className="mt-2 text-slate-600 dark:text-slate-400">
             <strong className="text-slate-800 dark:text-slate-200">
-              {job.company?.name ?? 'Không rõ công ty'}
+              {job.company?.name ?? tr('unknownCompany')}
             </strong>
-            {location && <> · {location}</>} · Đăng {timeAgo(job.postedAt)}
+            {location && <> · {location}</>} · {lang === 'en' ? 'Posted' : 'Đăng'}{' '}
+            {timeAgoI18n(job.postedAt, lang)}
           </p>
 
           {job.skills.length > 0 && (
@@ -168,7 +176,10 @@ export default async function JobDetailPage({ params }: PageProps) {
               />
             ) : (
               <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-                {job.description ?? 'Chưa có mô tả chi tiết. Xem tại nguồn gốc.'}
+                {job.description ??
+                  (lang === 'en'
+                    ? 'No detailed description. See the original source.'
+                    : 'Chưa có mô tả chi tiết. Xem tại nguồn gốc.')}
               </p>
             )}
           </div>
@@ -184,15 +195,15 @@ export default async function JobDetailPage({ params }: PageProps) {
                 rel="noopener noreferrer nofollow"
                 className="btn-primary w-full"
               >
-                Ứng tuyển tại nguồn ↗
+                {tr('applyAtSource')} ↗
               </a>
             ) : (
               <p className="rounded-lg bg-slate-100 px-3 py-2 text-center text-sm text-slate-500 dark:bg-slate-800">
-                Nguồn không cung cấp link hợp lệ
+                {tr('noApplyLink')}
               </p>
             )}
             <p className="mt-2 text-center text-xs text-slate-500">
-              Chuyển tới <strong>{job.source}</strong>
+              {lang === 'en' ? 'Goes to' : 'Chuyển tới'} <strong>{job.source}</strong>
             </p>
             {/*
               Tin tuyển dụng hết hạn là chuyện bình thường: kiểm tra thực tế
@@ -201,26 +212,35 @@ export default async function JobDetailPage({ params }: PageProps) {
               nên nói trước với người dùng thay vì để họ bấm vào rồi thất vọng.
             */}
             <p className="mt-1 text-center text-[11px] leading-snug text-slate-400">
-              Tin có thể đã đóng nếu nhà tuyển dụng gỡ sau lần cập nhật gần nhất
+              {tr('mayBeClosed')}
             </p>
 
             <dl className="mt-5 space-y-3 text-sm">
-              <Row label="Mức lương">
-                {job.salary.display ?? 'Thỏa thuận'}
+              <Row label={lang === 'en' ? 'Salary' : 'Mức lương'}>
+                {job.salary.display ?? tr('negotiable')}
                 {job.salary.maxUsd && (
                   <span className="block text-xs text-slate-500">
-                    ≈ {formatUsd(job.salary.maxUsd)}/năm quy đổi USD
+                    ≈ {formatUsd(job.salary.maxUsd)}
+                    {lang === 'en' ? '/year in USD' : '/năm quy đổi USD'}
                   </span>
                 )}
               </Row>
-              <Row label="Loại hợp đồng">{EMPLOYMENT_LABEL[job.employmentType]}</Row>
-              <Row label="Cấp bậc">{SENIORITY_LABEL[job.seniority]}</Row>
-              <Row label="Kinh nghiệm">
-                {job.experienceMinYears !== null ? `${job.experienceMinYears}+ năm` : '—'}
+              <Row label={lang === 'en' ? 'Employment type' : 'Loại hợp đồng'}>
+                {EMPLOYMENT_I18N[job.employmentType]?.[lang] ?? job.employmentType}
               </Row>
-              <Row label="Hình thức">{WORK_MODE_LABEL[job.workMode]}</Row>
-              <Row label="Địa điểm">{location ?? '—'}</Row>
-              <Row label="Độ tin cậy phân loại">
+              <Row label={lang === 'en' ? 'Seniority' : 'Cấp bậc'}>
+                {SENIORITY_I18N[job.seniority]?.[lang] ?? job.seniority}
+              </Row>
+              <Row label={lang === 'en' ? 'Experience' : 'Kinh nghiệm'}>
+                {job.experienceMinYears !== null
+                  ? `${job.experienceMinYears}+ ${lang === 'en' ? 'yrs' : 'năm'}`
+                  : '—'}
+              </Row>
+              <Row label={lang === 'en' ? 'Work mode' : 'Hình thức'}>
+                {WORK_MODE_I18N[job.workMode]?.[lang] ?? job.workMode}
+              </Row>
+              <Row label={lang === 'en' ? 'Location' : 'Địa điểm'}>{location ?? '—'}</Row>
+              <Row label={lang === 'en' ? 'Classification confidence' : 'Độ tin cậy phân loại'}>
                 <span
                   className={cn(
                     'font-medium',
@@ -239,13 +259,17 @@ export default async function JobDetailPage({ params }: PageProps) {
 
           {job.company && (
             <div className="card p-5">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Công ty</h2>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                {tr('company')}
+              </h2>
               <p className="mt-2 text-lg font-semibold">{job.company.name}</p>
               <Link
                 href={`/?company=${job.company.slug}`}
                 className="mt-3 inline-block text-sm font-medium text-brand-600 hover:underline"
               >
-                Xem tất cả việc làm của {job.company.name} →
+                {lang === 'en'
+                  ? `See all jobs at ${job.company.name} →`
+                  : `Xem tất cả việc làm của ${job.company.name} →`}
               </Link>
             </div>
           )}
@@ -254,10 +278,12 @@ export default async function JobDetailPage({ params }: PageProps) {
 
       {job.related.length > 0 && (
         <section>
-          <h2 className="mb-3 text-lg font-semibold">Việc làm liên quan</h2>
+          <h2 className="mb-3 text-lg font-semibold">
+            {lang === 'en' ? 'Related jobs' : 'Việc làm liên quan'}
+          </h2>
           <div className="space-y-3">
             {job.related.map((r) => (
-              <JobCard key={r.id} job={r} />
+              <JobCard key={r.id} job={r} lang={lang} />
             ))}
           </div>
         </section>

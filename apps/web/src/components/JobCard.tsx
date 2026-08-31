@@ -1,9 +1,22 @@
 import Link from 'next/link';
 import type { JobDto } from '@og/shared';
-import { DISCIPLINE_STYLE, EMPLOYMENT_LABEL, WORK_MODE_LABEL, cn, formatUsd, timeAgo } from '@/lib/utils';
+import { DISCIPLINE_STYLE, cn, formatUsd } from '@/lib/utils';
+import {
+  EMPLOYMENT_I18N,
+  WORK_MODE_I18N,
+  t,
+  timeAgoI18n,
+  type Lang,
+} from '@/lib/i18n';
 
-/** Card hiển thị 1 job trong danh sách. Server Component – không cần JS phía client. */
-export function JobCard({ job }: { job: JobDto }) {
+/**
+ * Card hiển thị 1 job trong danh sách. Server Component – không cần JS phía client.
+ *
+ * Chỉ dịch phần khung (nút, nhãn trạng thái). Tiêu đề, tên công ty, kỹ năng và
+ * địa điểm giữ nguyên như nguồn đăng — dịch máy sẽ làm sai thuật ngữ kỹ thuật.
+ */
+export function JobCard({ job, lang = 'vi' }: { job: JobDto; lang?: Lang }) {
+  const tr = t(lang);
   const style = DISCIPLINE_STYLE[job.discipline] ?? DISCIPLINE_STYLE.OTHER;
   const salary =
     job.salary.display ??
@@ -17,20 +30,20 @@ export function JobCard({ job }: { job: JobDto }) {
             <span className={cn('badge', style.className)}>{style.short}</span>
             {job.workMode !== 'UNKNOWN' && (
               <span className="badge bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
-                {WORK_MODE_LABEL[job.workMode]}
+                {WORK_MODE_I18N[job.workMode]?.[lang] ?? job.workMode}
               </span>
             )}
             {job.rotation && (
               <span className="badge bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
-                Ca {job.rotation}
+                {lang === 'en' ? 'Shift' : 'Ca'} {job.rotation}
               </span>
             )}
             {job.disciplineConfidence < 0.4 && (
               <span
                 className="badge bg-yellow-50 text-yellow-700 ring-yellow-200"
-                title="Độ tin cậy phân loại thấp – nên kiểm tra lại"
+                title={tr('needsReviewHint')}
               >
-                Cần xem lại
+                {tr('needsReview')}
               </span>
             )}
           </div>
@@ -43,16 +56,20 @@ export function JobCard({ job }: { job: JobDto }) {
 
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600 dark:text-slate-400">
             <span className="font-medium text-slate-800 dark:text-slate-200">
-              {job.company?.name ?? 'Không rõ công ty'}
+              {job.company?.name ?? tr('unknownCompany')}
             </span>
             <span aria-hidden>·</span>
             <span>
-              {[job.city, job.country?.name].filter(Boolean).join(', ') || job.locationRaw || 'Chưa rõ địa điểm'}
+              {[job.city, job.country?.name].filter(Boolean).join(', ') ||
+                job.locationRaw ||
+                tr('unknownLocation')}
             </span>
             {job.experienceMinYears !== null && (
               <>
                 <span aria-hidden>·</span>
-                <span>{job.experienceMinYears}+ năm KN</span>
+                <span>
+                  {job.experienceMinYears}+ {tr('yearsExp')}
+                </span>
               </>
             )}
           </p>
@@ -75,16 +92,16 @@ export function JobCard({ job }: { job: JobDto }) {
           {salary ? (
             <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">{salary}</p>
           ) : (
-            <p className="text-sm text-slate-400">Lương thỏa thuận</p>
+            <p className="text-sm text-slate-400">{tr('negotiable')}</p>
           )}
-          <p className="mt-1 text-xs text-slate-500">{timeAgo(job.postedAt)}</p>
+          <p className="mt-1 text-xs text-slate-500">{timeAgoI18n(job.postedAt, lang)}</p>
           <p className="mt-2 text-[11px] uppercase tracking-wide text-slate-400">{job.source}</p>
         </div>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
         <span className="text-xs text-slate-500">
-          {EMPLOYMENT_LABEL[job.employmentType] ?? job.employmentType}
+          {EMPLOYMENT_I18N[job.employmentType]?.[lang] ?? job.employmentType}
         </span>
 
         <div className="flex items-center gap-3">
@@ -92,7 +109,7 @@ export function JobCard({ job }: { job: JobDto }) {
             href={`/jobs/${job.slug}`}
             className="text-sm font-medium text-slate-600 hover:underline dark:text-slate-300"
           >
-            Chi tiết
+            {tr('details')}
           </Link>
 
           {/*
@@ -115,12 +132,12 @@ export function JobCard({ job }: { job: JobDto }) {
               className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
               title={`Mở tin tuyển dụng gốc trên ${job.source} (tab mới)`}
             >
-              Ứng tuyển ↗
+              {tr('apply')} ↗
             </a>
           ) : (
-            <span className="text-sm text-slate-400" title="Nguồn không cung cấp link hợp lệ">
-              Không có link
-            </span>
+            // Bỏ thuộc tính title cũ: nay chính chữ hiển thị đã nói rõ lý do,
+            // title trùng nội dung chỉ làm phiền người dùng trình đọc màn hình.
+            <span className="text-sm text-slate-400">{tr('noApplyLink')}</span>
           )}
         </div>
       </div>
