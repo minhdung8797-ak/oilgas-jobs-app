@@ -20,6 +20,8 @@ export interface JobFilters {
   q?: string;
   discipline?: string[];
   country?: string[];
+  /** Danh sách loại trừ — dùng khi người dùng bỏ tick vài nước. Xem QueryJobsDto. */
+  excludeCountry?: string[];
   region?: string[];
   company?: string[];
   source?: string[];
@@ -69,6 +71,7 @@ export function parseFilters(searchParams: Record<string, string | string[] | un
     q: str(searchParams.q),
     discipline: arr(searchParams.discipline),
     country: arr(searchParams.country),
+    excludeCountry: arr(searchParams.excludeCountry),
     region: arr(searchParams.region),
     company: arr(searchParams.company),
     source: arr(searchParams.source),
@@ -175,6 +178,7 @@ const EMPTY_FACETS: JobFacets = {
   workModes: [],
   seniorities: [],
   sources: [],
+  countriesTotal: 0,
   total: 0,
 };
 

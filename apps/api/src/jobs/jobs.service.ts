@@ -261,6 +261,9 @@ export class JobsService {
 
     return {
       total,
+      // Cộng CẢ bucket countryId = null: job chưa xác định được quốc gia vẫn
+      // hiện ở trạng thái "tất cả quốc gia", nên phải được đếm ở đây.
+      countriesTotal: countries.reduce((s, c) => s + c._count._all, 0),
       disciplines: disciplines
         .map((d) => ({
           value: d.discipline,
@@ -474,6 +477,16 @@ export class JobsService {
       and.push({ discipline: { in: query.discipline as never[] } });
     if (query.country?.length && omit !== 'country')
       and.push({ country: { code: { in: query.country.map((c) => c.toUpperCase()) } } });
+    // Loại trừ chỉ áp dụng khi KHÔNG có danh sách bao gồm — hai cái mâu thuẫn nhau.
+    // Phải kèm `country: null`: job chưa xác định được quốc gia vẫn nên hiện khi
+    // người dùng chỉ bỏ tick vài nước, chứ không bị loại oan.
+    if (!query.country?.length && query.excludeCountry?.length && omit !== 'country')
+      and.push({
+        OR: [
+          { countryId: null },
+          { country: { code: { notIn: query.excludeCountry.map((c) => c.toUpperCase()) } } },
+        ],
+      });
     if (query.region?.length) and.push({ country: { region: { in: query.region } } });
     if (query.company?.length && omit !== 'company')
       and.push({ company: { slug: { in: query.company } } });

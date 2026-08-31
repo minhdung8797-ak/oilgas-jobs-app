@@ -44,6 +44,7 @@ export function FilterSidebar({ facets, lang }: Props) {
     return {
       discipline: get('discipline'),
       country: get('country'),
+      excludeCountry: get('excludeCountry'),
       company: get('company'),
       employmentType: get('employmentType'),
       workMode: get('workMode'),
@@ -80,36 +81,49 @@ export function FilterSidebar({ facets, lang }: Props) {
     [pushParams],
   );
 
-  /** Không có tham số `country` trong URL = đang xem tất cả các nước. */
-  const allCountries = current.country.length === 0;
+  /**
+   * Ô quốc gia chạy ở hai chế độ:
+   *  • BAO GỒM — khi URL có `country=`. Chỉ xảy ra với link cũ hoặc link người
+   *    khác gửi; giao diện này không tự sinh ra nó.
+   *  • LOẠI TRỪ — mặc định. Không có tham số nào = xem tất cả; bỏ tick nước nào
+   *    thì nước đó vào `excludeCountry`.
+   *
+   * Vì sao không dùng danh sách bao gồm cho việc bỏ tick: bỏ tick 1 trong 22 nước
+   * phải gửi 21 mã, vượt giới hạn 20 phần tử của API -> HTTP 400 -> toàn bộ job
+   * biến mất. Đó chính là lỗi người dùng gặp. Gửi 1 mã loại trừ vừa ngắn, vừa
+   * đúng, vừa tự động bao gồm các nước mới xuất hiện sau này.
+   */
+  const includeMode = current.country.length > 0;
+  const excluded = useMemo(() => new Set(current.excludeCountry), [current.excludeCountry]);
+  const allCountries = !includeMode && excluded.size === 0;
 
   const selectAllCountries = useCallback(() => {
-    pushParams((params) => params.delete('country'));
+    pushParams((params) => {
+      params.delete('country');
+      params.delete('excludeCountry');
+    });
   }, [pushParams]);
 
-  /**
-   * Bỏ tick một nước khi đang ở trạng thái "tất cả" sẽ ghi ra danh sách MỌI nước
-   * trừ nước đó — vì API chỉ hiểu danh sách bao gồm, không hiểu danh sách loại trừ.
-   *
-   * Ngược lại, khi tick lại đủ hết các nước thì xoá hẳn tham số thay vì liệt kê
-   * toàn bộ. Giữ URL ngắn, và quan trọng hơn: nước mới xuất hiện sau này sẽ tự
-   * động được bao gồm, thay vì bị bỏ sót vì không nằm trong danh sách cũ.
-   */
+  const isCountryChecked = useCallback(
+    (value: string) => (includeMode ? current.country.includes(value) : !excluded.has(value)),
+    [includeMode, current.country, excluded],
+  );
+
   const toggleCountry = useCallback(
     (value: string) => {
-      const all = facets.countries.map((c) => c.value);
+      if (includeMode) {
+        toggle('country', value);
+        return;
+      }
       pushParams((params) => {
-        const selected = allCountries
-          ? new Set(all)
-          : new Set((params.get('country') ?? '').split(',').filter(Boolean));
-        if (selected.has(value)) selected.delete(value);
-        else selected.add(value);
-
-        if (selected.size === 0 || selected.size === all.length) params.delete('country');
-        else params.set('country', Array.from(selected).join(','));
+        const next = new Set((params.get('excludeCountry') ?? '').split(',').filter(Boolean));
+        if (next.has(value)) next.delete(value);
+        else next.add(value);
+        if (next.size === 0) params.delete('excludeCountry');
+        else params.set('excludeCountry', Array.from(next).join(','));
       });
     },
-    [allCountries, facets.countries, pushParams],
+    [includeMode, toggle, pushParams],
   );
 
   const setSingle = useCallback(
@@ -138,6 +152,7 @@ export function FilterSidebar({ facets, lang }: Props) {
   const activeCount =
     current.discipline.length +
     current.country.length +
+    current.excludeCountry.length +
     current.company.length +
     current.employmentType.length +
     current.workMode.length +
@@ -216,7 +231,7 @@ export function FilterSidebar({ facets, lang }: Props) {
       <FilterGroup title={tr('country')}>
         <CheckRow
           label={tr('allCountries')}
-          count={facets.countries.reduce((s, c) => s + c.count, 0)}
+          count={facets.countriesTotal}
           checked={allCountries}
           disabled={allCountries}
           onChange={selectAllCountries}
@@ -227,7 +242,7 @@ export function FilterSidebar({ facets, lang }: Props) {
             key={c.value}
             label={c.label}
             count={c.count}
-            checked={allCountries || current.country.includes(c.value)}
+            checked={isCountryChecked(c.value)}
             onChange={() => toggleCountry(c.value)}
           />
         ))}

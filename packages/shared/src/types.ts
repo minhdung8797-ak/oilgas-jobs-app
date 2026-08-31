@@ -112,6 +112,13 @@ export interface JobFacets {
   workModes: FacetBucket[];
   seniorities: FacetBucket[];
   sources: FacetBucket[];
+  /**
+   * Số job khi BỎ bộ lọc quốc gia — dùng cho dòng "Tất cả quốc gia".
+   * Không thể lấy bằng cách cộng `countries` lại: những job chưa xác định được
+   * quốc gia không nằm trong bucket nào, nên phép cộng cho ra số nhỏ hơn thật
+   * (người dùng từng thấy "Tất cả quốc gia 114" trong khi trang có 136 job).
+   */
+  countriesTotal: number;
   total: number;
 }
 

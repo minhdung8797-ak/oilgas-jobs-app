@@ -54,6 +54,26 @@ export class QueryJobsDto extends PaginationDto {
   @IsString({ each: true })
   country?: string[];
 
+  /**
+   * Danh sách mã quốc gia cần LOẠI TRỪ. Đối lập với `country` (danh sách bao gồm);
+   * hai tham số này loại trừ nhau, `country` được ưu tiên nếu cùng có mặt.
+   *
+   * Vì sao cần: giao diện cho phép "chọn tất cả rồi bỏ tick vài nước". Nếu chỉ có
+   * danh sách bao gồm thì bỏ tick 1 nước phải gửi N-1 mã — vượt `@ArrayMaxSize(20)`
+   * và làm URL dài ngoằng. Đây là lỗi có thật: bỏ tick một nước khiến API trả 400
+   * và toàn bộ job biến mất.
+   *
+   * Lợi ích thứ hai: nước MỚI xuất hiện sau này tự động được bao gồm, thay vì bị
+   * bỏ sót vì không nằm trong danh sách cũ.
+   */
+  @ApiPropertyOptional({ description: 'Mã ISO alpha-2 cần loại trừ', example: ['IQ'] })
+  @IsOptional()
+  @Transform(toArray)
+  @IsArray()
+  @ArrayMaxSize(60)
+  @IsString({ each: true })
+  excludeCountry?: string[];
+
   @ApiPropertyOptional({ description: 'Vùng địa lý', example: ['Middle East'] })
   @IsOptional()
   @Transform(toArray)
