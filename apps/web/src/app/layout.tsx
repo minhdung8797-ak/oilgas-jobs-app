@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { LangToggle } from '@/components/LangToggle';
+import { SiteNav, SiteTagline } from '@/components/SiteNav';
 import './globals.css';
 
 // Dùng system font stack thay vì next/font/google: build không phụ thuộc mạng
@@ -52,39 +52,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </span>
               <span className="text-lg font-semibold tracking-tight">{SITE_NAME}</span>
             </Link>
-            <nav className="flex items-center gap-1 text-sm">
-              <Link
-                href="/"
-                className="rounded-lg px-3 py-2 font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                Việc làm
-              </Link>
-              <Link
-                href="/companies"
-                className="rounded-lg px-3 py-2 font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                Công ty
-              </Link>
-              <a
-                href={`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1'}/docs`}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-lg px-3 py-2 font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                API
-              </a>
-              {/*
-                Nhãn "Việc làm" / "Công ty" ở trên GIỮ NGUYÊN tiếng Việt: layout
-                không nhận searchParams nên không biết `?lang=`, và không có cách
-                dịch chúng ở đây mà không đẩy layout thành Client Component.
-
-                Suspense là bắt buộc: `useSearchParams` bên trong LangToggle sẽ
-                khiến toàn bộ cây bị đẩy sang client-render nếu không có ranh giới.
-              */}
-              <Suspense fallback={<div className="h-8 w-[74px]" />}>
-                <LangToggle />
-              </Suspense>
-            </nav>
+            {/* Cả thanh nav nằm trong Client Component: layout không nhận
+                searchParams nên Server Component ở đây không biết `?lang=`.
+                Suspense là bắt buộc vì bên trong dùng useSearchParams. */}
+            <Suspense fallback={<div className="h-9 w-[260px]" />}>
+              <SiteNav
+                apiDocsUrl={`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1'}/docs`}
+              />
+            </Suspense>
           </div>
         </header>
 
@@ -94,8 +69,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="mx-auto max-w-7xl px-4 text-sm text-slate-500">
             <p className="font-medium text-slate-700 dark:text-slate-300">{SITE_NAME}</p>
             <p className="mt-1">
-              Dữ liệu được thu thập tự động từ các trang tuyển dụng công khai và phân loại bằng NLP.
-              Luôn kiểm tra lại tại nguồn gốc trước khi ứng tuyển.
+              <Suspense fallback={null}>
+                <SiteTagline />
+              </Suspense>
             </p>
           </div>
         </footer>

@@ -15,6 +15,19 @@ import { isSafeUrl, sanitizeHtml } from '../common/sanitize-html';
 import { buildMeta } from '../common/dto/pagination.dto';
 import { JobSort, QueryJobsDto } from './dto/query-jobs.dto';
 
+/**
+ * Các nhóm lọc có facet riêng. Dùng để bỏ qua đúng nhóm đó khi dựng điều kiện,
+ * xem ghi chú ở `buildWhere`.
+ */
+type FacetKey =
+  | 'discipline'
+  | 'country'
+  | 'company'
+  | 'source'
+  | 'employmentType'
+  | 'workMode'
+  | 'seniority';
+
 /** select dùng chung cho list – KHÔNG kéo description (nặng) về ở endpoint list. */
 const LIST_SELECT = {
   id: true,
@@ -178,19 +191,55 @@ export class JobsService {
     };
   }
 
-  /** Facets tính bằng groupBy – 1 round-trip/nhóm, đủ nhanh với index đã tạo. */
+  /**
+   * Facets tính bằng groupBy – 1 round-trip/nhóm, đủ nhanh với index đã tạo.
+   *
+   * Mỗi nhóm được tính với MỌI bộ lọc TRỪ bộ lọc của chính nó (xem `buildWhere`).
+   * Đây là cách làm chuẩn của tìm kiếm theo facet: chọn "Chevron" rồi vẫn phải
+   * thấy các công ty khác kèm số lượng, nếu không thì không thể chọn thêm.
+   *
+   * `total` thì ngược lại — dùng đủ mọi bộ lọc, vì nó là số kết quả thật.
+   */
   async facets(query: QueryJobsDto): Promise<JobFacets> {
     const where = this.buildWhere(query);
 
     const [disciplines, countries, companies, employmentTypes, workModes, seniorities, sources, total] =
       await Promise.all([
-        this.prisma.job.groupBy({ by: ['discipline'], where, _count: { _all: true } }),
-        this.prisma.job.groupBy({ by: ['countryId'], where, _count: { _all: true } }),
-        this.prisma.job.groupBy({ by: ['companyId'], where, _count: { _all: true } }),
-        this.prisma.job.groupBy({ by: ['employmentType'], where, _count: { _all: true } }),
-        this.prisma.job.groupBy({ by: ['workMode'], where, _count: { _all: true } }),
-        this.prisma.job.groupBy({ by: ['seniority'], where, _count: { _all: true } }),
-        this.prisma.job.groupBy({ by: ['source'], where, _count: { _all: true } }),
+        this.prisma.job.groupBy({
+          by: ['discipline'],
+          where: this.buildWhere(query, 'discipline'),
+          _count: { _all: true },
+        }),
+        this.prisma.job.groupBy({
+          by: ['countryId'],
+          where: this.buildWhere(query, 'country'),
+          _count: { _all: true },
+        }),
+        this.prisma.job.groupBy({
+          by: ['companyId'],
+          where: this.buildWhere(query, 'company'),
+          _count: { _all: true },
+        }),
+        this.prisma.job.groupBy({
+          by: ['employmentType'],
+          where: this.buildWhere(query, 'employmentType'),
+          _count: { _all: true },
+        }),
+        this.prisma.job.groupBy({
+          by: ['workMode'],
+          where: this.buildWhere(query, 'workMode'),
+          _count: { _all: true },
+        }),
+        this.prisma.job.groupBy({
+          by: ['seniority'],
+          where: this.buildWhere(query, 'seniority'),
+          _count: { _all: true },
+        }),
+        this.prisma.job.groupBy({
+          by: ['source'],
+          where: this.buildWhere(query, 'source'),
+          _count: { _all: true },
+        }),
         this.prisma.job.count({ where }),
       ]);
 
@@ -402,21 +451,39 @@ export class JobsService {
     return out;
   }
 
-  private buildWhere(query: QueryJobsDto): Prisma.JobWhereInput {
+  /**
+   * @param omit Bỏ qua MỘT nhóm lọc khi dựng điều kiện.
+   *
+   * Dùng cho facet: một facet KHÔNG được tự lọc chính nó. Nếu tính số lượng theo
+   * quốc gia mà vẫn áp bộ lọc quốc gia thì kết quả chỉ còn đúng những nước đang
+   * chọn — người dùng không thấy được các lựa chọn khác để mà chọn thêm.
+   *
+   * Đây là lỗi có thật, phát hiện 2026-08-31: nút "bỏ tick quốc gia" ở giao diện
+   * dựa vào danh sách facet để biết có bao nhiêu nước. Facet tự thu hẹp khiến nó
+   * tưởng "đã chọn hết" rồi xoá luôn bộ lọc, nên mỗi lần bỏ tick lại nhảy về
+   * trạng thái tất cả.
+   */
+  private buildWhere(query: QueryJobsDto, omit?: FacetKey): Prisma.JobWhereInput {
     const and: Prisma.JobWhereInput[] = [
       { isActive: true },
       // Mặc định chỉ trả về 4 nhóm mục tiêu
       { discipline: { not: 'OTHER' } },
     ];
 
-    if (query.discipline?.length) and.push({ discipline: { in: query.discipline as never[] } });
-    if (query.country?.length) and.push({ country: { code: { in: query.country.map((c) => c.toUpperCase()) } } });
+    if (query.discipline?.length && omit !== 'discipline')
+      and.push({ discipline: { in: query.discipline as never[] } });
+    if (query.country?.length && omit !== 'country')
+      and.push({ country: { code: { in: query.country.map((c) => c.toUpperCase()) } } });
     if (query.region?.length) and.push({ country: { region: { in: query.region } } });
-    if (query.company?.length) and.push({ company: { slug: { in: query.company } } });
-    if (query.source?.length) and.push({ source: { in: query.source } });
-    if (query.employmentType?.length) and.push({ employmentType: { in: query.employmentType as never[] } });
-    if (query.workMode?.length) and.push({ workMode: { in: query.workMode as never[] } });
-    if (query.seniority?.length) and.push({ seniority: { in: query.seniority as never[] } });
+    if (query.company?.length && omit !== 'company')
+      and.push({ company: { slug: { in: query.company } } });
+    if (query.source?.length && omit !== 'source') and.push({ source: { in: query.source } });
+    if (query.employmentType?.length && omit !== 'employmentType')
+      and.push({ employmentType: { in: query.employmentType as never[] } });
+    if (query.workMode?.length && omit !== 'workMode')
+      and.push({ workMode: { in: query.workMode as never[] } });
+    if (query.seniority?.length && omit !== 'seniority')
+      and.push({ seniority: { in: query.seniority as never[] } });
     if (query.skill?.length) and.push({ skills: { some: { skill: { slug: { in: query.skill } } } } });
     if (query.salaryMinUsd !== undefined) and.push({ salaryMaxUsd: { gte: query.salaryMinUsd } });
     if (query.hasSalary) and.push({ OR: [{ salaryMinUsd: { not: null } }, { salaryMaxUsd: { not: null } }] });
