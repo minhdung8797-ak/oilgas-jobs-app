@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState, useTransition } from 'react';
+import { useCallback, useMemo, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { JobFacets } from '@og/shared';
 import { DISCIPLINE_STYLE, cn } from '@/lib/utils';
@@ -33,8 +33,22 @@ export function FilterSidebar({ facets, lang }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const [showAllCountries, setShowAllCountries] = useState(false);
-  const [showAllCompanies, setShowAllCompanies] = useState(false);
+
+  /**
+   * Quốc gia và công ty xếp theo A–Z, khác với các nhóm còn lại (xếp theo số job).
+   * Hai danh sách này dài hàng chục mục nên người dùng đến đây để TÌM một cái tên
+   * cụ thể, chứ không phải để xem cái nào nhiều job nhất — thứ tự chữ cái giúp
+   * quét mắt nhanh hơn hẳn.
+   *
+   * `localeCompare` chứ không phải `<`: so sánh chuỗi thô xếp "Ấn Độ" sau "Zimbabwe"
+   * vì ký tự có dấu nằm ngoài bảng ASCII.
+   *
+   * Sao chép mảng trước khi sort: `Array.prototype.sort` sửa tại chỗ, mà đây là
+   * props — sửa thẳng sẽ làm hỏng dữ liệu của component cha.
+   */
+  const byName = (a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label);
+  const countriesAZ = useMemo(() => [...facets.countries].sort(byName), [facets.countries]);
+  const companiesAZ = useMemo(() => [...facets.companies].sort(byName), [facets.companies]);
 
   const current = useMemo(() => {
     const get = (key: string): string[] => {
@@ -237,48 +251,32 @@ export function FilterSidebar({ facets, lang }: Props) {
           onChange={selectAllCountries}
         />
         <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
-        {(showAllCountries ? facets.countries : facets.countries.slice(0, 10)).map((c) => (
-          <CheckRow
-            key={c.value}
-            label={c.label}
-            count={c.count}
-            checked={isCountryChecked(c.value)}
-            onChange={() => toggleCountry(c.value)}
-          />
-        ))}
-        {facets.countries.length > 10 && (
-          <button
-            onClick={() => setShowAllCountries((s) => !s)}
-            className="mt-1 text-xs font-medium text-brand-600 hover:underline"
-          >
-            {showAllCountries
-              ? tr('collapse')
-              : `${tr('showMore')} ${facets.countries.length - 10} ${tr('showMoreSuffix')}`}
-          </button>
-        )}
+        <ScrollList>
+          {countriesAZ.map((c) => (
+            <CheckRow
+              key={c.value}
+              label={c.label}
+              count={c.count}
+              checked={isCountryChecked(c.value)}
+              onChange={() => toggleCountry(c.value)}
+            />
+          ))}
+        </ScrollList>
       </FilterGroup>
 
       {/* ── Công ty ── */}
       <FilterGroup title={tr('company')}>
-        {(showAllCompanies ? facets.companies : facets.companies.slice(0, 8)).map((c) => (
-          <CheckRow
-            key={c.value}
-            label={c.label}
-            count={c.count}
-            checked={current.company.includes(c.value)}
-            onChange={() => toggle('company', c.value)}
-          />
-        ))}
-        {facets.companies.length > 8 && (
-          <button
-            onClick={() => setShowAllCompanies((s) => !s)}
-            className="mt-1 text-xs font-medium text-brand-600 hover:underline"
-          >
-            {showAllCompanies
-              ? tr('collapse')
-              : `${tr('showMore')} ${facets.companies.length - 8} ${tr('showMoreSuffixCompanies')}`}
-          </button>
-        )}
+        <ScrollList>
+          {companiesAZ.map((c) => (
+            <CheckRow
+              key={c.value}
+              label={c.label}
+              count={c.count}
+              checked={current.company.includes(c.value)}
+              onChange={() => toggle('company', c.value)}
+            />
+          ))}
+        </ScrollList>
       </FilterGroup>
 
       {/* ── Hình thức làm việc ── */}
@@ -374,6 +372,20 @@ function FilterGroup({ title, children }: { title: string; children: React.React
       <div className="space-y-1.5">{children}</div>
     </div>
   );
+}
+
+/**
+ * Khung cuộn cho danh sách dài (quốc gia, công ty).
+ *
+ * Thay cho nút "xem thêm N mục" trước đây: khi danh sách xếp theo số job thì 10
+ * mục đầu là 10 mục đông nhất — cắt ở đó có nghĩa. Nhưng xếp A–Z thì cắt ở mục
+ * thứ 10 chỉ là cắt giữa chữ C, che mất phần lớn bảng chữ cái. Cuộn giữ được cả
+ * danh sách mà không đẩy thanh bên dài ra vô tận.
+ *
+ * `pr-1` chừa chỗ cho thanh cuộn để nó không đè lên số đếm bên phải.
+ */
+function ScrollList({ children }: { children: React.ReactNode }) {
+  return <div className="max-h-64 space-y-1.5 overflow-y-auto pr-1">{children}</div>;
 }
 
 function CheckRow({
