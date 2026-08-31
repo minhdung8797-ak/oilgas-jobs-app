@@ -224,22 +224,57 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
       posted: '.jobDate, span.jobDate',
       detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
     },
-    // Lịch sử của nguồn này đáng ghi lại vì nó dễ bị chẩn đoán sai:
+    // ⚠️ TẮT. Lịch sử đầy đủ, vì đây là ca dễ chẩn đoán sai nhất trong cả app:
     //
-    // 2026-08-30: tắt. Lần chạy thật mất 939 giây rồi trả về found=0, và ngay
-    //   sau đó careers.aramco.com treo cả trên trình duyệt thật.
-    // 2026-08-31: BẬT LẠI. Site phản hồi 200 trong dưới 500ms cho mọi từ khoá:
-    //   "reservoir" -> 6 tin (Gas Reservoir Engineer, Brine Reservoir Engineer…),
-    //   "production engineer" -> 25 tin, "petroleum" -> 18 tin.
+    // 2026-08-30: chạy 939 giây -> found=0. Kết luận "site chặn bot". Tắt.
+    // 2026-08-31: mở careers.aramco.com bằng trình duyệt -> 200 trong <500ms,
+    //   "reservoir" ra 6 tin thật. Kết luận "chỉ bị tiết lưu tạm thời". Bật lại.
+    // 2026-08-31 (sau đó): chạy lại từ Render -> 1131 giây, LẠI found=0.
     //
-    // Kết luận: đó là GIỚI HẠN TỐC ĐỘ TẠM THỜI, không phải chặn vĩnh viễn — và
-    // gần như chắc chắn do chính đợt dò của tôi hôm đó gọi quá dồn. Bài học:
-    // "found=0 kèm thời gian chạy dài bất thường" nghĩa là bị tiết lưu, cần thử
-    // lại sau vài giờ trước khi kết luận nguồn đã chết.
+    // Kết luận đúng: Aramco chặn theo ĐỊA CHỈ IP TRUNG TÂM DỮ LIỆU. Trình duyệt
+    // của tôi đi từ IP dân dụng nên vào được; scraper đi từ IP Render (Oregon)
+    // nên bị chặn. Hai phép thử cho hai kết quả trái ngược vì chúng KHÔNG cùng
+    // điều kiện — đó là chỗ tôi sai.
     //
-    // maxPages=1 và SCRAPER_REQUEST_DELAY_MS=2500 giữ nhịp gọi đủ nhẹ.
+    // Con số 1131 giây tự nó là bằng chứng: 6 từ khoá × 45 giây timeout × 4 lần
+    // thử lại ≈ 1080 giây. Mọi request đều treo tới hết giờ chứ không bị từ chối
+    // ngay — đúng đặc trưng của tường lửa chống bot, không phải lỗi cấu hình.
+    //
+    // BÀI HỌC CHUNG: mở được bằng trình duyệt KHÔNG chứng minh scraper vào được.
+    // Phải đối chiếu bằng lần chạy thật từ Render, hoặc ít nhất coi kết quả từ
+    // trình duyệt là chưa đủ. Áp dụng cho mọi nguồn mới.
+    //
+    // Muốn bật lại: cần proxy có IP dân dụng — nằm ngoài phạm vi bản $0/tháng.
+    // KHÔNG lách bằng cách giả User-Agent trình duyệt: đó là vượt rào chống bot.
+    // Selector bên dưới đã xác minh đúng, giữ nguyên để dùng lại sau này.
+    enabled: false,
+    notes: 'SuccessFactors RMK · selector đúng, nhưng Aramco chặn IP trung tâm dữ liệu (đo 2 lần: 939s và 1131s, đều found=0)',
+  },
+  {
+    key: 'halliburton',
+    label: 'Halliburton Careers',
+    company: 'Halliburton',
+    companyType: CompanyType.SERVICE,
+    baseUrl: 'https://jobs.halliburton.com',
+    // Halliburton KHÔNG dùng Workday. Cấu hình cũ trỏ tới
+    // halliburton.wd1.myworkdayjobs.com — địa chỉ không tồn tại, đó là lý do
+    // nguồn này im lặng suốt. Cổng thật là SAP SuccessFactors ở đây.
+    searchUrlTemplate: 'https://jobs.halliburton.com/search/?q={keyword}&startrow={page}',
+    keywords: ['reservoir', 'petroleum', 'geologist', 'geophysicist', 'production engineer'],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      card: 'tr.data-row',
+      title: 'a.jobTitle-link',
+      location: 'span.jobLocation',
+      posted: 'span.jobDate',
+      detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
+    },
     enabled: true,
-    notes: 'SuccessFactors RMK · bật lại 2026-08-31 sau đợt tiết lưu tạm thời',
+    // Xác minh 2026-08-31: "reservoir" -> 19 tin gồm Reservoir Engineering &
+    // Geoscience Consultant, Reservoir Engineering Advisor, Geology Advisor;
+    // "geologist" -> 10 tin gồm Logging Geologist II.
+    notes: 'SuccessFactors RMK · xác minh 2026-08-31 · nguồn giàu tin nhất nhóm dịch vụ',
   },
   {
     key: 'exxonmobil',

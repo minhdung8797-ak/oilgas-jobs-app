@@ -163,4 +163,22 @@ export const ORACLE_ORC_TENANTS: OracleOrcTenant[] = [
     // và Petronas có thể mở tuyển vị trí kỹ thuật qua đúng cổng này.
     searchTerms: ['reservoir', 'petroleum', 'geoscience', 'production engineer', 'geophysicist'],
   },
+  {
+    key: 'weatherford',
+    label: 'Weatherford Careers',
+    company: 'Weatherford',
+    companyType: CompanyType.SERVICE,
+    // Weatherford KHÔNG dùng Workday. Cấu hình cũ trỏ tới
+    // weatherford.wd1.myworkdayjobs.com — trả về trang bảo trì của Workday.
+    // Cổng thật là Oracle Recruiting Cloud; host Oracle lấy từ HTML của
+    // careers.weatherford.com (tìm chuỗi "oraclecloud.com").
+    apiHost: 'https://fa-exmi-saasfaprod1.fa.ocs.oraclecloud.com',
+    publicHost: 'https://careers.weatherford.com',
+    siteNumber: 'CX_1',
+    jobPathPrefix: '/en/sites/CX_1',
+    // Xác minh 2026-08-31: "reservoir" -> 3 tin gồm Operations Geoscience
+    // Specialist (Sr. Reservoir Petrophysicist); "geologist" -> Operations
+    // Geoscience Specialist IV – Geologist; "production engineer" -> 112 tin.
+    searchTerms: ['reservoir', 'petroleum', 'geoscience', 'geologist', 'geophysicist', 'production engineer'],
+  },
 ];

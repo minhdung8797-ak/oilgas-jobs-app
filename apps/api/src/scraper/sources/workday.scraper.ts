@@ -275,16 +275,9 @@ export const WORKDAY_TENANTS: WorkdayTenant[] = [
   // Halliburton dùng SAP SuccessFactors (jobs.halliburton.com), không phải Workday.
   // Equinor dùng cổng tuyển dụng riêng tại equinor.com/careers/vacancies (SPA).
   // Muốn bật lại thì phải viết scraper riêng cho từng cổng, không dùng WorkdayScraper.
-  {
-    key: 'halliburton',
-    label: 'Halliburton Careers',
-    company: 'Halliburton',
-    companyType: CompanyType.SERVICE,
-    host: 'https://halliburton.wd1.myworkdayjobs.com',
-    tenant: 'halliburton',
-    site: 'Halliburton',
-    enabled: false,
-  },
+  // Halliburton ĐÃ CHUYỂN sang generic-html.scraper.ts (SAP SuccessFactors tại
+  // jobs.halliburton.com, xác minh 2026-08-31). Mục Workday cũ bị xoá hẳn để
+  // tránh trùng khoá `halliburton` trong registry.
   {
     key: 'equinor',
     label: 'Equinor Careers',
@@ -295,14 +288,7 @@ export const WORKDAY_TENANTS: WorkdayTenant[] = [
     site: 'Equinor',
     enabled: false,
   },
-  {
-    key: 'weatherford',
-    label: 'Weatherford Careers',
-    company: 'Weatherford',
-    companyType: CompanyType.SERVICE,
-    host: 'https://weatherford.wd1.myworkdayjobs.com',
-    tenant: 'weatherford',
-    site: 'Weatherford',
-    enabled: false,
-  },
+  // Weatherford ĐÃ CHUYỂN sang oracle-orc.scraper.ts (Oracle Recruiting Cloud
+  // tại careers.weatherford.com, xác minh 2026-08-31). Mục Workday cũ — vốn trỏ
+  // tới địa chỉ không tồn tại — bị xoá hẳn để tránh trùng khoá.
 ];
