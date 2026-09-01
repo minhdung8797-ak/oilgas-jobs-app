@@ -75,12 +75,32 @@ jobs:
       SCRAPER_FORCE_SOURCES: 'aramco'
 
     steps:
-      - name: Kiểm tra đã có DATABASE_URL chưa
+      # Kiểm tra HÌNH DẠNG của chuỗi kết nối, không chỉ kiểm tra có hay không.
+      #
+      # Lý do: nút copy trên Neon đưa ra nguyên câu lệnh psql, kèm dấu nháy:
+      #     psql 'postgresql://user:***@host/db?sslmode=require'
+      # Dán nguyên vào secret thì Prisma chết với P1012 "URL must start with the
+      # protocol postgresql://" — nhưng chỉ chết ở bước migrate, tức là sau khi
+      # đã cài đặt và build xong, làm mất 30 giây và giấu nguyên nhân thật xuống
+      # tận cuối log. Bắt ngay tại đây, ở giây thứ 5, với lời chỉ dẫn cụ thể.
+      - name: Kiểm tra DATABASE_URL
         run: |
           if [ -z "$DATABASE_URL" ]; then
             echo "::error::Chưa tạo secret DATABASE_URL. Settings → Secrets and variables → Actions."
             exit 1
           fi
+
+          case "$DATABASE_URL" in
+            postgresql://*|postgres://*) ;;
+            *)
+              # In 10 ký tự đầu để nhận diện lỗi. An toàn: 10 ký tự đầu của một
+              # chuỗi hợp lệ chỉ là "postgresql", còn mật khẩu nằm sau dấu ':'
+              # thứ hai, xa hơn nhiều. Log của repo public ai cũng đọc được nên
+              # tuyệt đối không in thêm.
+              echo "::error::DATABASE_URL sai định dạng — phải bắt đầu bằng 'postgresql://'. 10 ký tự đầu hiện tại: [$(printf '%s' "$DATABASE_URL" | cut -c1-10)]. Thường là do dán nguyên câu lệnh psql của Neon kèm dấu nháy. Dán lại chỉ phần chuỗi kết nối, bỏ 'psql ' và bỏ dấu nháy."
+              exit 1 ;;
+          esac
+
           case "$DATABASE_URL" in
             *-pooler.*)
               echo "::warning::DATABASE_URL đang dùng chuỗi pooler. Prisma migrate cần kết nối TRỰC TIẾP; nếu bước migrate lỗi P1002 thì đổi sang chuỗi không có '-pooler'." ;;
