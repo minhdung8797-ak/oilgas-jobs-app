@@ -201,6 +201,35 @@ curl -X POST http://localhost:4000/api/v1/scrape/run \
   -d '{"source":"bakerhughes","async":true}'
 ```
 
+### 4.4 Nguồn chỉ chạy được từ máy cá nhân
+
+Một số nhà tuyển dụng chặn theo **dải IP trung tâm dữ liệu**, không phải chặn bot
+nói chung. Saudi Aramco là ca đã đo được ba lần, ba nơi:
+
+| Chạy từ | Thời gian | Tin tìm được |
+|---|---|---|
+| Render (Oregon) | 1131 giây | 0 |
+| Render (Oregon) | 1128 giây | 0 |
+| GitHub Actions | 1126 giây | 0 |
+| Máy cá nhân (IP dân dụng) | 0,3 giây | 52 |
+
+Mọi request từ máy chủ đều treo tới hết giờ rồi trả rỗng — đặc trưng của tường
+lửa chống bot chứ không phải lỗi cấu hình. Những nguồn như vậy để `enabled: false`
+trong registry (API và cron trên GitHub không đụng tới) và chạy riêng từ máy cá nhân:
+
+```powershell
+.\scripts\aramco-local.ps1                  # chạy một lần
+.\scripts\setup-aramco-task.ps1             # hẹn giờ chạy hằng ngày 10:30
+.\scripts\setup-aramco-task.ps1 -Remove     # gỡ lịch
+```
+
+Script ghi thẳng vào Neon, không qua API trên Render, nên không phụ thuộc việc API
+có đang ngủ hay không. Nhật ký nằm ở `logs/aramco-YYYY-MM.log`.
+
+> **Không** lách chặn bằng cách giả User-Agent trình duyệt hay dùng proxy vượt rào.
+> Cách trên hợp lệ vì nó chỉ là chạy cùng một scraper từ một đường mạng khác, vẫn
+> khai báo đúng danh tính bot và vẫn chỉ lấy dữ liệu công khai.
+
 ---
 
 ## 5. API

@@ -7,8 +7,15 @@ coverage/
 .env
 .env.local
 .env.*.local
+# Chuoi ket noi Neon danh rieng cho scripts/aramco-local.ps1 - khac voi .env
+# (chuoi dev tro ve Docker o localhost). Tuyet doi khong commit.
+.env.scraper
 .turbo/
 *.tsbuildinfo
 apps/api/prisma/generated/
 playwright-report/
 .DS_Store
+logs/
+# pnpm tao file do rong nay khi kiem tra quyen ghi cua o dia, thinh thoang
+# khong don sach duoc. Hai file nhu vay da lot vao repo mot lan qua `git add -A`.
+_tmp_*

@@ -14,8 +14,17 @@ name: Cập nhật việc làm hằng ngày
 #     kỳ trong 60 ngày là đủ để giữ lịch sống.
 #
 #  CẦN CÓ SECRET (Settings -> Secrets and variables -> Actions):
-#     DATABASE_URL = chuỗi Neon KHÔNG có "-pooler"
-#     Prisma migrate cần kết nối trực tiếp; chuỗi pooler sẽ gây lỗi P1002.
+#
+#     Tên   : DATABASE_URL
+#     Giá trị: dán ĐÚNG chuỗi kết nối, dạng như dưới đây và không gì khác —
+#              không kèm chữ mô tả, không "psql ", không dấu nháy:
+#
+#         postgresql://<user>:<password>@ep-xxxx.<region>.aws.neon.tech/neondb?sslmode=require
+#
+#     Lấy ở Neon: Dashboard -> Connection string -> BỎ CHỌN "Pooled connection".
+#     Prisma migrate cần kết nối trực tiếp; chuỗi có "-pooler" gây lỗi P1002.
+#     Phải là cùng database mà Render đang dùng, nếu không job sẽ ghi vào một
+#     database khác và trang web không thấy dữ liệu mới.
 # ═══════════════════════════════════════════════════════════════════════════
 
 on:
@@ -65,14 +74,21 @@ jobs:
       CLASSIFIER_MIN_MARGIN: '2'
       HF_ENABLED: 'false'
       JOB_TTL_DAYS: '60'
-      # Ép bật các nguồn chặn IP trung tâm dữ liệu của Render nhưng CÓ THỂ vào
-      # được từ dải IP của GitHub Actions. Aramco đã đo: từ Render mọi request
-      # treo tới hết giờ (2 lần, 939s và 1131s, đều found=0); từ IP dân dụng thì
-      # phản hồi trong nửa giây. Actions chạy trên hạ tầng khác nên đáng thử.
+      # KHÔNG ép bật aramco ở đây. Đã thử và đã có câu trả lời dứt khoát:
       #
-      # Nếu lần chạy hằng ngày cho thấy aramco vẫn found=0 kèm thời gian dài,
-      # nghĩa là Actions cũng bị chặn -> xoá key khỏi dòng này.
-      SCRAPER_FORCE_SOURCES: 'aramco'
+      #     30/08 17:58  Render          1131361ms  found=0
+      #     30/08 23:54  Render          1127764ms  found=0
+      #     01/09 07:03  GitHub Actions  1126472ms  found=0
+      #     (đối chiếu)  halliburton       96787ms  found=25
+      #
+      # Ba lần treo gần bằng nhau tới từng chục giây rồi trả rỗng — dải IP của
+      # Actions bị chặn y như Render. Giả thuyết "đổi hạ tầng thì vào được" sai.
+      # Bật lại chỉ tốn 19 trong 30 phút ngân sách mỗi lần chạy để lấy về số 0,
+      # và có nguy cơ làm cả job hết giờ.
+      #
+      # Bài học chung: mở được portal bằng trình duyệt ở nhà KHÔNG chứng minh
+      # scraper trên máy chủ vào được — đó là hai dải IP khác nhau.
+      # SCRAPER_FORCE_SOURCES: 'aramco'
 
     steps:
       # Kiểm tra HÌNH DẠNG của chuỗi kết nối, không chỉ kiểm tra có hay không.

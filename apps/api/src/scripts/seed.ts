@@ -43,6 +43,8 @@ const COMPANIES: {
   { name: 'KazMunayGas', type: 'NOC', website: 'https://www.kmg.kz', hq: 'KZ' },
   { name: 'Tullow Oil', type: 'IOC', website: 'https://www.tullowoil.com', hq: 'GB' },
   { name: 'Harbour Energy', type: 'IOC', website: 'https://www.harbourenergy.com', hq: 'GB' },
+  // Nhà điều hành mỏ Sarsang, vùng Kurdistan Iraq. Tuyển dụng qua UKG/UltiPro.
+  { name: 'HKN Energy', type: 'IOC', website: 'https://www.hknenergy.com', careersUrl: 'https://www.hknenergy.com/careers/', hq: 'IQ' },
   { name: 'Wood', type: 'EPC', website: 'https://www.woodplc.com', hq: 'GB' },
   { name: 'Petrofac', type: 'EPC', website: 'https://www.petrofac.com', hq: 'GB' },
   { name: 'TechnipFMC', type: 'EPC', website: 'https://www.technipfmc.com', hq: 'GB' },

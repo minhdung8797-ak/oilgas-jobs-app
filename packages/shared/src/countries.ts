@@ -40,7 +40,11 @@ export const COUNTRIES: CountryDef[] = [
   { code: 'KW', iso3: 'KWT', name: 'Kuwait', region: 'Middle East', currency: 'KWD', aliases: ['kuwait', 'ahmadi'] },
   { code: 'OM', iso3: 'OMN', name: 'Oman', region: 'Middle East', currency: 'OMR', aliases: ['oman', 'muscat', 'nimr'] },
   { code: 'BH', iso3: 'BHR', name: 'Bahrain', region: 'Middle East', currency: 'BHD', aliases: ['bahrain', 'manama'] },
-  { code: 'IQ', iso3: 'IRQ', name: 'Iraq', region: 'Middle East', currency: 'IQD', aliases: ['iraq', 'basra', 'basrah', 'erbil', 'kurdistan'] },
+  { code: 'IQ', iso3: 'IRQ', name: 'Iraq', region: 'Middle East', currency: 'IQD', aliases: ['iraq', 'basra', 'basrah', 'erbil', 'kurdistan', 'kirkuk', 'hamrin', 'salah ad din'] },
+  // 'syrian arab republic' là tên chính thức mà nhiều hệ thống tuyển dụng dùng
+  // (UKG/UltiPro của HKN Energy trả đúng chuỗi đó). Thiếu bí danh này thì 17 tin
+  // ở Rmelan rơi vào country = null và biến mất khỏi bộ lọc quốc gia.
+  { code: 'SY', iso3: 'SYR', name: 'Syria', region: 'Middle East', currency: 'SYP', aliases: ['syria', 'syrian arab republic', 'rmelan', 'rmeilan', 'rmilan', 'damascus', 'hasakah'] },
   { code: 'NG', iso3: 'NGA', name: 'Nigeria', region: 'Africa', currency: 'NGN', aliases: ['nigeria', 'lagos', 'port harcourt', 'warri'] },
   { code: 'AO', iso3: 'AGO', name: 'Angola', region: 'Africa', currency: 'AOA', aliases: ['angola', 'luanda', 'soyo'] },
   { code: 'EG', iso3: 'EGY', name: 'Egypt', region: 'Africa', currency: 'EGP', aliases: ['egypt', 'cairo', 'alexandria'] },
@@ -123,4 +127,5 @@ export const FALLBACK_FX_TO_USD: Record<string, number> = {
   MXN: 17.1, ARS: 900, COP: 3950, GYD: 209, TTD: 6.8, DZD: 134, LYD: 4.85,
   GHS: 14.5, XAF: 604, XOF: 604, NAD: 18.6, MZN: 63.8, AOA: 850, IQD: 1310,
   RON: 4.58, PGK: 3.8, AZN: 1.7, VES: 36, ZAR: 18.5, BND: 1.35, TWD: 32,
+  SYP: 13000,
 };

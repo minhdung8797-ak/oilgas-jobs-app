@@ -10,6 +10,7 @@ import { PHENOM_TENANTS, PhenomScraper } from './sources/phenom.scraper';
 import { ORACLE_ORC_TENANTS, OracleOrcScraper } from './sources/oracle-orc.scraper';
 import { JIBE_TENANTS, JibeScraper } from './sources/jibe.scraper';
 import { WORKABLE_TENANTS, WorkableScraper } from './sources/workable.scraper';
+import { ULTIPRO_TENANTS, UltiproScraper } from './sources/ultipro.scraper';
 
 /**
  * Registry tập trung mọi scraper.
@@ -39,6 +40,8 @@ export class ScraperRegistry {
       ...JIBE_TENANTS.map((t) => new JibeScraper(t)),
       // Career site chạy Workable (BW Energy, Assala…) — 1 request lấy hết tin
       ...WORKABLE_TENANTS.map((t) => new WorkableScraper(t)),
+      // Career site chạy UKG/UltiPro (HKN Energy…) — cũng 1 request lấy hết tin
+      ...ULTIPRO_TENANTS.map((t) => new UltiproScraper(t)),
     ];
     this.logger.log(
       `Đã nạp ${this.scrapers.length} scraper (${this.enabled().length} đang bật): ` +
