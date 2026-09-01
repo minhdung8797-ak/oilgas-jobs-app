@@ -491,16 +491,55 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     firstPage: 0,
     maxPages: 1,
     selectors: {
-      card: 'tr.data-row',
+      // Nhận CẢ HAI bố cục của SuccessFactors: bảng (`tr.data-row`) và tile
+      // (`li.job-tile`). Woodside đã đổi sang tile, nên Tullow đổi lúc nào không
+      // biết trước — mà nếu chỉ khai một kiểu thì hôm đổi sẽ thành "0 tin" im
+      // lặng, trông hệt như công ty không tuyển, rất khó phát hiện.
+      card: 'tr.data-row, li.job-tile',
       title: 'a.jobTitle-link',
-      location: 'span.jobLocation',
-      posted: 'span.jobDate',
+      location: 'span.jobLocation, [id$="-section-location-value"]',
+      posted: 'span.jobDate, [id$="-section-date-value"]',
       detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
     },
     enabled: true,
-    // Xác minh 2026-08-30: Tullow đang mở ĐÚNG 1 vị trí trên toàn site
-    // ("Finance Business Advisor"), không thuộc 4 nhóm ngành. Vẫn bật vì cấu
-    // hình đã đúng và chỉ tốn 4 request/ngày — có tin mới là tự vào.
-    notes: 'SuccessFactors RMK · hiện chỉ 1 tin, không thuộc nhóm mục tiêu',
+    // 2026-08-30: đúng 1 tin toàn site ("Finance Business Advisor").
+    // 2026-09-01: kiểm tra lại — 0 tin, trang tìm kiếm không còn dòng nào.
+    // Vẫn bật vì cấu hình đúng và chỉ tốn 5 request/ngày; có tin mới là tự vào.
+    notes: 'SuccessFactors · 2026-09-01 không có tin nào đang mở',
+  },
+  {
+    key: 'woodside',
+    label: 'Woodside Energy Careers',
+    company: 'Woodside Energy',
+    companyType: CompanyType.IOC,
+    baseUrl: 'https://careers.woodside.com.au',
+    searchUrlTemplate: 'https://careers.woodside.com.au/search/?q={keyword}&startrow={page}',
+    keywords: ['reservoir', 'petroleum', 'production', 'geologist', 'geophysicist', 'petrophysicist'],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      // Woodside dùng bố cục "tile" đời mới của SuccessFactors, KHÔNG phải bảng
+      // `tr.data-row` như Tullow/Aramco. Cùng một nền tảng nhưng hai kiểu dựng
+      // trang khác hẳn — selector không dùng chung được.
+      card: 'li.job-tile',
+      title: 'a.jobTitle-link',
+      // Địa điểm nằm trong ô riêng có id kết thúc bằng '-section-location-value'.
+      // Không dùng '.section-field.location' vì ô đó gồm cả nhãn chữ "Location",
+      // lấy nguyên text sẽ ra "Location AU".
+      location: '[id$="-section-location-value"]',
+      posted: '[id$="-section-date-value"]',
+      detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
+    },
+    enabled: true,
+    // Xác minh 2026-09-01: 19 tin toàn site, có "Reservoir Engineer" và
+    // "Senior Production Allocation Engineer - LA LNG".
+    //
+    // Hai điểm đã đo được, ghi lại để khỏi chẩn đoán lại:
+    //  • Ô địa điểm chỉ chứa MÃ ISO 2 KÝ TỰ ('AU', 'MX', 'US') hoặc dạng
+    //    'TX, US, 77056'. Normalizer có luật riêng cho hai dạng này.
+    //  • Từ khoá không khớp thì máy chủ trả về TOÀN BỘ tin thay vì rỗng. Vô hại
+    //    ở đây (khử trùng lặp theo URL rồi classifier lọc tiếp), nhưng đừng dựa
+    //    vào số kết quả để kết luận từ khoá có khớp hay không.
+    notes: 'SuccessFactors bố cục tile · 19 tin · địa điểm là mã ISO2',
   },
 ];

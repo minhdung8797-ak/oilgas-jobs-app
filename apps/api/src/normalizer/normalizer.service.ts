@@ -151,6 +151,26 @@ export class NormalizerService {
       }
     }
 
+    // SuccessFactors bố cục tile (Woodside) chỉ ghi MÃ NƯỚC vào ô địa điểm,
+    // không ghi tên: 'AU', 'MX', 'US', hoặc 'TX, US, 77056'.
+    //
+    // Mã 2 ký tự cố ý không nằm trong ALIAS_INDEX, vì 'in', 'it', 'no', 'is'
+    // trùng với từ tiếng Anh thường gặp và sẽ gán nhầm nước cho hàng loạt tin.
+    // Nên xử lý riêng, và CHỈ với hai dạng hẹp dưới đây — cả hai đều không thể
+    // là văn xuôi, nên không có nguy cơ nhận nhầm:
+    //
+    //   1. Cả chuỗi đúng bằng một mã hợp lệ            -> 'MX'
+    //   2. <mã bang>, <mã nước>, <mã bưu chính>        -> 'TX, US, 77056'
+    //
+    // Dạng 2 lấy mã THỨ HAI, không phải mã đầu: mã đầu là bang. Lấy nhầm sẽ ra
+    // kết quả sai mà trông vẫn hợp lệ — 'LA, US' thành Lào, 'IL, US' thành Israel.
+    if (!countryCode) {
+      const solo = /^([a-z]{2})$/.exec(lower);
+      const stateCountryZip = /^([a-z]{2}),\s*([a-z]{2}),\s*[\w -]+$/.exec(lower);
+      const code = solo?.[1] ?? stateCountryZip?.[2];
+      if (code && ISO2_SET.has(code)) countryCode = code.toUpperCase();
+    }
+
     if (!countryCode) {
       for (const row of ALIAS_INDEX) {
         const re = new RegExp(`(^|[^a-z])${escapeRegex(row.alias)}([^a-z]|$)`, 'i');
