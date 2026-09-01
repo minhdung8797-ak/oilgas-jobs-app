@@ -11,6 +11,8 @@ import { ORACLE_ORC_TENANTS, OracleOrcScraper } from './sources/oracle-orc.scrap
 import { JIBE_TENANTS, JibeScraper } from './sources/jibe.scraper';
 import { WORKABLE_TENANTS, WorkableScraper } from './sources/workable.scraper';
 import { ULTIPRO_TENANTS, UltiproScraper } from './sources/ultipro.scraper';
+import { MANATAL_TENANTS, ManatalScraper } from './sources/manatal.scraper';
+import { SF_SITEMAP_TENANTS, SfSitemapScraper } from './sources/sf-sitemap.scraper';
 
 /**
  * Registry tập trung mọi scraper.
@@ -42,6 +44,10 @@ export class ScraperRegistry {
       ...WORKABLE_TENANTS.map((t) => new WorkableScraper(t)),
       // Career site chạy UKG/UltiPro (HKN Energy…) — cũng 1 request lấy hết tin
       ...ULTIPRO_TENANTS.map((t) => new UltiproScraper(t)),
+      // Career site chạy Manatal (Mubadala Energy…) — API mở, có phân trang
+      ...MANATAL_TENANTS.map((t) => new ManatalScraper(t)),
+      // SuccessFactors đời mới (INPEX…) — danh sách render bằng JS, đi vòng qua sitemap
+      ...SF_SITEMAP_TENANTS.map((t) => new SfSitemapScraper(t)),
     ];
     this.logger.log(
       `Đã nạp ${this.scrapers.length} scraper (${this.enabled().length} đang bật): ` +

@@ -45,6 +45,8 @@ const COMPANIES: {
   { name: 'Harbour Energy', type: 'IOC', website: 'https://www.harbourenergy.com', hq: 'GB' },
   // Nhà điều hành mỏ Sarsang, vùng Kurdistan Iraq. Tuyển dụng qua UKG/UltiPro.
   { name: 'HKN Energy', type: 'IOC', website: 'https://www.hknenergy.com', careersUrl: 'https://www.hknenergy.com/careers/', hq: 'IQ' },
+  { name: 'Mubadala Energy', type: 'IOC', website: 'https://www.mubadalaenergy.com', careersUrl: 'https://www.careers-page.com/mubadalaenergy', hq: 'AE' },
+  { name: 'INPEX', type: 'IOC', website: 'https://www.inpex.co.jp', careersUrl: 'https://careers.inpex.com.au', hq: 'JP' },
   { name: 'Wood', type: 'EPC', website: 'https://www.woodplc.com', hq: 'GB' },
   { name: 'Petrofac', type: 'EPC', website: 'https://www.petrofac.com', hq: 'GB' },
   { name: 'TechnipFMC', type: 'EPC', website: 'https://www.technipfmc.com', hq: 'GB' },
