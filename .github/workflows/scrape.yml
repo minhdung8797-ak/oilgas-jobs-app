@@ -98,8 +98,19 @@ jobs:
           # Repo đã có pnpm-lock.yaml nên bật được cache, tiết kiệm ~40 giây/lần.
           cache: pnpm
 
+      # --prod=false là BẮT BUỘC ở đây, không phải tuỳ chọn.
+      #
+      # `NODE_ENV: production` đặt ở cấp job (cần cho lúc chạy scraper) khiến pnpm
+      # bỏ qua toàn bộ devDependencies. Mà `nest`, `prisma`, `tsc` đều nằm trong
+      # devDependencies -> bước Build chết ngay với "Command \"nest\" not found",
+      # kéo theo mọi bước sau bị skip. Đây chính là lý do 6/6 lần chạy đều đỏ và
+      # cập nhật hằng ngày chưa từng chạy được lần nào.
+      #
+      # Cùng một cái bẫy đã làm hỏng build trên Vercel trước đây ("tsc: command
+      # not found"). Không hạ NODE_ENV xuống vì scraper cần nó ở lúc chạy —
+      # chỉ cần nói riêng với pnpm rằng bước CÀI ĐẶT thì vẫn lấy devDependencies.
       - name: Cài dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --prod=false
 
       - name: Cài Chromium (chỉ khi cần nguồn Playwright)
         if: inputs.with_playwright == true
