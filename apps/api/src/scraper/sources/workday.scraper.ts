@@ -183,6 +183,19 @@ export const WORKDAY_TENANTS: WorkdayTenant[] = [
     tenant: 'bakerhughes',
     site: 'BakerHughes',
   },
+  {
+    key: 'spiritenergy',
+    label: 'Spirit Energy Careers',
+    company: 'Spirit Energy',
+    companyType: CompanyType.IOC,
+    host: 'https://spiritenergy.wd3.myworkdayjobs.com',
+    tenant: 'spiritenergy',
+    site: 'SpiritInternet',
+    // Xác minh 2026-09-01: gọi thẳng /wday/cxs/spiritenergy/SpiritInternet/jobs
+    // -> HTTP 200, total = 9. Địa điểm dạng "UK - Barrow Terminals", "UK - Aberdeen"
+    // (bí danh 'uk' đã có sẵn cho Anh nên nhận diện được).
+    // Hiện chưa tin nào thuộc 4 nhóm — toàn kỹ thuật viên, kế toán, IT.
+  },
   // ── Đã xác minh 2026-08-30 bằng cách gọi thẳng /wday/cxs/... và nhận HTTP 200 ──
   {
     key: 'chevron',

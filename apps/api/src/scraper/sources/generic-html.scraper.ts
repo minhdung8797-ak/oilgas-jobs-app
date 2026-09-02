@@ -61,6 +61,15 @@ export interface GenericSourceDef {
     snippet?: string;
     detailBody?: string;
   };
+  /**
+   * Địa điểm dùng khi thẻ tin KHÔNG có ô địa điểm nào.
+   *
+   * Vài cổng SuccessFactors tắt hẳn cột địa điểm (Vår Energi, Origin). Thiếu nó
+   * thì `country` thành null và tin biến mất khỏi bộ lọc quốc gia. Chỉ đặt cho
+   * nhà tuyển dụng chỉ hoạt động ở MỘT nước — đặt bừa sẽ gán sai nước cho tin
+   * ở nơi khác, mà sai kiểu đó trông vẫn hợp lệ nên rất khó phát hiện.
+   */
+  defaultLocation?: string;
   enabled: boolean;
   notes?: string;
 }
@@ -124,7 +133,10 @@ export class GenericHtmlScraper extends BaseScraper {
             externalId: null,
             title,
             companyName: s.company ? this.clean($c.find(s.company).first().text()) : (this.def.company ?? null),
-            locationRaw: s.location ? this.clean($c.find(s.location).first().text()) : null,
+            locationRaw:
+              (s.location ? this.clean($c.find(s.location).first().text()) : null) ||
+              this.def.defaultLocation ||
+              null,
             salaryRaw: s.salary ? this.clean($c.find(s.salary).first().text()) : null,
             postedAtRaw: posted,
             postedAt: parseFlexibleDate(posted),
@@ -541,5 +553,125 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     //    ở đây (khử trùng lặp theo URL rồi classifier lọc tiếp), nhưng đừng dựa
     //    vào số kết quả để kết luận từ khoá có khớp hay không.
     notes: 'SuccessFactors bố cục tile · 19 tin · địa điểm là mã ISO2',
+  },
+  {
+    key: 'omv',
+    label: 'OMV Careers',
+    company: 'OMV',
+    companyType: CompanyType.IOC,
+    baseUrl: 'https://careers.omv.com',
+    searchUrlTemplate: 'https://careers.omv.com/search/?q={keyword}&startrow={page}',
+    keywords: ['reservoir', 'petroleum', 'production', 'geologist', 'geophysicist', 'petrophysicist'],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      card: 'tr.data-row',
+      title: 'a.jobTitle-link',
+      location: 'span.jobLocation',
+      posted: 'span.jobDate',
+      detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
+    },
+    enabled: true,
+    // Xác minh 2026-09-01: bố cục bảng, 24 dòng ở trang đầu. Địa điểm ghi đầy đủ
+    // ("Bucharest, RO, 013329", "Schwechat, Lower Austria, AT, 2320") nên không
+    // cần defaultLocation. Áo đã được thêm vào bảng quốc gia cho nguồn này.
+    notes: 'SuccessFactors bố cục bảng · phần lớn tin ở Romania và Áo',
+  },
+  {
+    key: 'varenergi',
+    label: 'Vår Energi Careers',
+    company: 'Vår Energi',
+    companyType: CompanyType.IOC,
+    baseUrl: 'https://jobs.varenergi.no',
+    searchUrlTemplate: 'https://jobs.varenergi.no/search/?q={keyword}&startrow={page}',
+    keywords: ['reservoir', 'petroleum', 'production', 'geologist', 'geophysicist', 'subsurface'],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      card: 'li.job-tile',
+      title: 'a.jobTitle-link',
+      // KHÔNG khai location: Vår Energi tắt hẳn cột địa điểm trên thẻ tin.
+      posted: '[id$="-section-date-value"]',
+      detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
+    },
+    // Vår Energi chỉ hoạt động ở Na Uy (Sandnes, Stavanger, Hammerfest), nên gán
+    // mặc định là an toàn. Nếu sau này họ mở văn phòng nước khác thì phải bỏ dòng này.
+    defaultLocation: 'Norway',
+    enabled: true,
+    // Xác minh 2026-09-01: 15 tin, có "Experienced Explorationists",
+    // "Subsurface Professionals", "Experienced Drilling & Well Professionals".
+    notes: 'SuccessFactors bố cục tile · thẻ tin không có ô địa điểm',
+  },
+  {
+    key: 'origin',
+    label: 'Origin Energy Careers',
+    company: 'Origin Energy',
+    companyType: CompanyType.IOC,
+    baseUrl: 'https://careers.originenergy.com.au',
+    searchUrlTemplate: 'https://careers.originenergy.com.au/search/?q={keyword}&startrow={page}',
+    keywords: ['reservoir', 'petroleum', 'production engineer', 'geologist', 'subsurface'],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      card: 'tr.data-row, li.job-tile',
+      title: 'a.jobTitle-link',
+      posted: 'span.jobDate, [id$="-section-date-value"]',
+      detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
+    },
+    defaultLocation: 'Australia',
+    enabled: true,
+    // Xác minh 2026-09-01: bố cục bảng, ô địa điểm để trống trên mọi dòng.
+    // Origin chủ yếu là bán lẻ điện/khí; phần thượng nguồn là APLNG nên số tin
+    // thuộc 4 nhóm sẽ ít.
+    notes: 'SuccessFactors · thẻ tin không có ô địa điểm · phần lớn tin ngoài ngành',
+  },
+  {
+    key: 'santos',
+    label: 'Santos Careers',
+    company: 'Santos',
+    companyType: CompanyType.IOC,
+    baseUrl: 'https://recruitment.santos.com',
+    searchUrlTemplate: 'https://recruitment.santos.com/careers/SearchJobs?search={keyword}&jobOffset={page}',
+    keywords: ['reservoir', 'petroleum', 'production', 'geologist', 'geophysicist', 'subsurface'],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      card: 'article.article--result',
+      title: 'h3.article__header__text__title a',
+      // Dòng phụ ghi "Brisbane • Ref #ATR 611715 • Posted 20-Aug-2026". Trông lộn
+      // xộn nhưng dùng được: normalizer tách chuỗi ở dấu '•' nên lấy đúng "Brisbane".
+      location: '.article__header__text__subtitle',
+      detailBody: '.article__content, [itemprop="description"]',
+    },
+    enabled: true,
+    // Xác minh 2026-09-01: Avature, 13 tin, 6 tin/trang, HTML dựng sẵn ở máy chủ.
+    // Tìm kiếm hoạt động THẬT (?search=reservoir trả 0 kết quả thay vì trả hết),
+    // khác Woodside — nên từ khoá ở đây có ý nghĩa.
+    notes: 'Avature · 13 tin · tìm kiếm theo từ khoá hoạt động đúng',
+  },
+  {
+    key: 'ithaca',
+    label: 'Ithaca Energy Vacancies',
+    company: 'Ithaca Energy',
+    companyType: CompanyType.IOC,
+    baseUrl: 'https://www.ithacaenergy.com',
+    // Trang này không có tham số tìm kiếm nào — mọi tin nằm trên một trang tĩnh.
+    // Template không chứa {keyword}/{page} nên chỉ sinh đúng 1 request.
+    searchUrlTemplate: 'https://www.ithacaenergy.com/careers/apply',
+    keywords: [''],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      card: '.CardsBlock__item',
+      title: 'h3.Card__title',
+      detailBody: '.job-description, [itemprop="description"], main',
+    },
+    // Ithaca chỉ khai thác ở Biển Bắc thuộc Anh, trụ sở Aberdeen/London.
+    defaultLocation: 'United Kingdom',
+    enabled: true,
+    // Xác minh 2026-09-01: 1 tin ("Maintenance Technician - Mechanical"), không
+    // thuộc 4 nhóm. Link tin trỏ sang bảng tuyển dụng PeopleHR của họ.
+    // Thẻ tin chỉ có chức danh, không có địa điểm.
+    notes: 'HTML tĩnh · 1 tin · link apply trỏ sang PeopleHR',
   },
 ];

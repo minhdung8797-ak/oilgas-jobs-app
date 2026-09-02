@@ -30,7 +30,11 @@ export const COUNTRIES: CountryDef[] = [
   { code: 'DE', iso3: 'DEU', name: 'Germany', region: 'Europe', currency: 'EUR', aliases: ['germany', 'deutschland', 'celle', 'hamburg', 'munich'] },
   { code: 'FR', iso3: 'FRA', name: 'France', region: 'Europe', currency: 'EUR', aliases: ['france', 'paris', 'pau', 'la defense', 'courbevoie'] },
   { code: 'IT', iso3: 'ITA', name: 'Italy', region: 'Europe', currency: 'EUR', aliases: ['italy', 'italia', 'milan', 'ravenna', 'san donato'] },
-  { code: 'RO', iso3: 'ROU', name: 'Romania', region: 'Europe', currency: 'RON', aliases: ['romania', 'bucharest', 'ploiesti'] },
+  { code: 'RO', iso3: 'ROU', name: 'Romania', region: 'Europe', currency: 'RON', aliases: ['romania', 'bucharest', 'ploiesti', 'craiova', 'campina'] },
+  // OMV đóng trụ sở ở Áo; phần lớn tin của họ ghi "Schwechat, Lower Austria, AT".
+  // Bí danh 'austria' không đụng 'australia' vì khớp theo ranh giới từ, và
+  // ALIAS_INDEX ưu tiên bí danh dài hơn.
+  { code: 'AT', iso3: 'AUT', name: 'Austria', region: 'Europe', currency: 'EUR', aliases: ['austria', 'vienna', 'wien', 'schwechat', 'gaenserndorf'] },
   { code: 'AZ', iso3: 'AZE', name: 'Azerbaijan', region: 'Caspian', currency: 'AZN', aliases: ['azerbaijan', 'baku'] },
   { code: 'KZ', iso3: 'KAZ', name: 'Kazakhstan', region: 'Caspian', currency: 'KZT', aliases: ['kazakhstan', 'atyrau', 'aktau', 'almaty', 'astana', 'tengiz'] },
   { code: 'RU', iso3: 'RUS', name: 'Russia', region: 'Caspian', currency: 'RUB', aliases: ['russia', 'moscow', 'tyumen', 'sakhalin'] },
