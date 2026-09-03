@@ -69,6 +69,14 @@ const COMPANIES: {
   { name: 'CC Energy Development', type: 'IOC', website: 'https://www.ccedoman.com', careersUrl: 'https://kwader.mem.gov.om/jobs', hq: 'OM' },
   { name: 'Masar Petroleum', type: 'IOC', website: 'https://kwader.mem.gov.om/jobs', careersUrl: 'https://kwader.mem.gov.om/jobs', hq: 'OM' },
   { name: 'Tethys Oil', type: 'IOC', website: 'https://www.tethysoil.com', careersUrl: 'https://kwader.mem.gov.om/jobs', hq: 'OM' },
+  // Hai hãng phần mềm/tư vấn kỹ thuật mỏ — không khai thác dầu, nhưng tuyển
+  // đúng nhóm kỹ sư mà app này phục vụ.
+  { name: 'Petroleum Experts', type: 'CONSULTANCY', website: 'https://www.petex.com', careersUrl: 'https://www.petex.com/about/careers/current-opportunities/', hq: 'GB' },
+  { name: 'KAPPA Engineering', type: 'CONSULTANCY', website: 'https://www.kappaeng.com', careersUrl: 'https://www.kappaeng.com/careers?lang=en', hq: 'FR' },
+  // PVD Training vừa tuyển cho mình vừa cung ứng nhân lực cho khách hàng — với
+  // nhóm sau, ô "công ty" sẽ không phải nơi làm việc thật. Xem ghi chú trong
+  // wordpress-jobs.scraper.ts.
+  { name: 'PVD Training', type: 'SERVICE', website: 'https://pvdtraining.com.vn', careersUrl: 'https://job.pvdtraining.com.vn', hq: 'VN' },
   { name: 'Wood', type: 'EPC', website: 'https://www.woodplc.com', hq: 'GB' },
   { name: 'Petrofac', type: 'EPC', website: 'https://www.petrofac.com', hq: 'GB' },
   { name: 'TechnipFMC', type: 'EPC', website: 'https://www.technipfmc.com', hq: 'GB' },

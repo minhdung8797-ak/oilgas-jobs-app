@@ -14,6 +14,7 @@ import { ULTIPRO_TENANTS, UltiproScraper } from './sources/ultipro.scraper';
 import { MANATAL_TENANTS, ManatalScraper } from './sources/manatal.scraper';
 import { SF_SITEMAP_TENANTS, SfSitemapScraper } from './sources/sf-sitemap.scraper';
 import { KwaderScraper } from './sources/kwader.scraper';
+import { WORDPRESS_JOBS_TENANTS, WordPressJobsScraper } from './sources/wordpress-jobs.scraper';
 
 /**
  * Registry tập trung mọi scraper.
@@ -51,6 +52,8 @@ export class ScraperRegistry {
       ...SF_SITEMAP_TENANTS.map((t) => new SfSitemapScraper(t)),
       // Cổng ngành dầu khí của Bộ Năng lượng Oman — 10 nhà điều hành, gồm PDO
       new KwaderScraper(),
+      // Trang tuyển dụng dựng bằng WordPress (PVD Training…) — dùng REST API sẵn có
+      ...WORDPRESS_JOBS_TENANTS.map((t) => new WordPressJobsScraper(t)),
     ];
     this.assertUniqueKeys();
 

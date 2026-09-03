@@ -158,6 +158,15 @@ export class GenericHtmlScraper extends BaseScraper {
   }
 
   protected async enrich(job: RawJob, ctx: ScrapeContext): Promise<RawJob> {
+    // Vài nhà tuyển dụng đăng mô tả bằng file PDF thay vì trang web (KAPPA là
+    // một ví dụ). Tải nó rồi đưa qua Cheerio sẽ cho ra rác nhị phân nằm trong
+    // trường mô tả — hiển thị lên giao diện thì hỏng, mà lại trông như dữ liệu
+    // thật nên khó phát hiện. Giữ nguyên bản từ trang danh sách, còn hơn.
+    if (/\.pdf(\?|#|$)/i.test(job.sourceUrl)) {
+      ctx.logger.log(`[${this.def.key}] bỏ qua enrich vì link là PDF: ${job.sourceUrl}`);
+      return job;
+    }
+
     const html = await ctx.http.get<string>(job.sourceUrl);
     const $ = cheerio.load(html);
     const ld = extractJobPostingJsonLd($);
@@ -731,5 +740,61 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     // trang chi tiết có microdata đầy đủ: addressLocality="Victoria Island",
     // addressRegion="LA", addressCountry="NG".
     notes: 'SuccessFactors · địa điểm lấy từ microdata trang chi tiết',
+  },
+  {
+    key: 'petex',
+    label: 'Petroleum Experts (Petex) Careers',
+    company: 'Petroleum Experts',
+    companyType: CompanyType.CONSULTANCY,
+    baseUrl: 'https://www.petex.com',
+    // Trang tĩnh, không có tham số tìm kiếm nào -> template không chứa
+    // {keyword}/{page} nên chỉ sinh đúng 1 request.
+    searchUrlTemplate: 'https://www.petex.com/about/careers/current-opportunities/',
+    keywords: [''],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      card: 'article.news-card',
+      title: 'h2',
+      // Thẻ <p> đầu tiên trong mỗi thẻ tin là địa điểm ("Houston, TX, USA");
+      // thẻ thứ hai là tóm tắt. GenericHtmlScraper lấy .first() nên khai 'p' là đủ.
+      location: 'p',
+      detailBody: 'main, article',
+    },
+    enabled: true,
+    // Xác minh 2026-09-03: 4 tin, đều là phần mềm/bán hàng (Technical Sales
+    // Engineer, AI/ML Engineer, Software Development Engineer, UI/UX) — hiện
+    // KHÔNG tin nào thuộc 4 nhóm ngành. Vẫn bật vì Petex là hãng làm IPM
+    // (PROSPER, GAP, MBAL) và có tuyển kỹ sư dầu khí theo đợt; chi phí 1 request/ngày.
+    notes: 'HTML tĩnh · 4 tin · hiện chưa tin nào thuộc nhóm mục tiêu',
+  },
+  {
+    key: 'kappa',
+    label: 'KAPPA Engineering Careers',
+    company: 'KAPPA Engineering',
+    companyType: CompanyType.CONSULTANCY,
+    baseUrl: 'https://www.kappaeng.com',
+    searchUrlTemplate: 'https://www.kappaeng.com/careers?lang=en',
+    keywords: [''],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      card: '#genericContent ul.colors li',
+      title: 'a',
+      detailBody: 'main, #genericContent',
+    },
+    // KHÔNG khai location: thẻ tin không có ô riêng, địa điểm nằm lẫn trong
+    // chức danh ("…, Houston (TX)."). Lấy cả chuỗi làm địa điểm thì phần "city"
+    // sẽ thành nguyên cái chức danh — sai mà nhìn vẫn hợp lệ. Thà để trống.
+    // Cũng không đặt defaultLocation vì KAPPA có văn phòng ở Pháp, Anh, Mỹ, Nga.
+    enabled: true,
+    // Xác minh 2026-09-03: đúng 1 tin đang mở ("Technical Business Development
+    // Manager, Houston (TX)"), không thuộc 4 nhóm. Các tin cũ bị comment lại
+    // trong HTML nên không lọt vào.
+    //
+    // Link mỗi tin trỏ tới PDF, KHÔNG phải trang web — enrich() đã có chốt bỏ
+    // qua link .pdf, nếu không mô tả sẽ đầy rác nhị phân. Ứng tuyển qua email
+    // jobs@kappaeng.com.
+    notes: 'HTML tĩnh · 1 tin · link chi tiết là PDF, apply qua email',
   },
 ];
