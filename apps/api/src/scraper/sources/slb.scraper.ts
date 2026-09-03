@@ -1,218 +1,240 @@
-import { CompanyType, RawJob, SourceConfig, SourceStrategy, parseFlexibleDate } from '@og/shared';
+import { CompanyType, RawJob, SourceConfig, SourceStrategy } from '@og/shared';
 import { BaseScraper, ScrapeContext } from '../lib/base-scraper';
 
 /**
  * ══════════════════════════════════════════════════════════════
  *  SLB CAREERS  ·  https://careers.slb.com
  * ══════════════════════════════════════════════════════════════
- *  Chiến lược : Playwright (SPA – kết quả render bằng JavaScript)
- *  Vì sao không dùng Cheerio: HTML trả về ban đầu chỉ là khung rỗng,
- *  danh sách job được nạp qua XHR sau khi JS chạy.
+ *  LỊCH SỬ, vì đây là nguồn tốn nhiều công nhất trong cả app:
  *
- *  Kỹ thuật tối ưu:
- *   • Chặn ảnh/font/CSS (cấu hình sẵn trong BrowserPool) -> tải nhanh hơn ~3×
- *   • waitForSelector thay vì sleep cứng -> ổn định trên mạng chậm
- *   • Trích dữ liệu bằng 1 lần page.$$eval -> chỉ 1 lần chuyển context Node↔Browser
- *   • Nếu bắt được XHR trả JSON, ưu tiên đọc JSON (nhanh & bền hơn DOM)
+ *  Bản cũ dùng Playwright vì trang danh sách render bằng JavaScript. Nó không
+ *  bao giờ chạy được: lớp phủ xin phép cookie che kết quả, và không bắt được
+ *  request XHR nào để đọc thẳng. Nguồn nằm im ở `enabled: false` suốt.
+ *
+ *  Thử lại bằng mẹo sitemap (cách đã cứu INPEX) cũng KHÔNG được:
+ *  careers.slb.com/sitemap.xml có 213 địa chỉ nhưng toàn trang giới thiệu,
+ *  không có mục /job/ nào.
+ *
+ *  Đường đi được nằm ở chỗ khác: tìm kiếm việc làm của SLB chạy trên COVEO
+ *  (thấy qua thẻ script `js-atomic-job-listing-search.js`). Cả bốn tham số cần
+ *  thiết nằm trong input ẩn của trang /job-listing, mà trang đó dựng sẵn ở máy
+ *  chủ — đọc được bằng một request thường:
+ *
+ *      #organizationId   -> schlumbergerproduction0cs2zrh7
+ *      #accessToken      -> khoá API công khai của Coveo
+ *      #searchHub        -> CoveoJobsHub
+ *      #searchsource     -> ATS_Jobs_Source - Prod
+ *
+ *  rồi gọi:
+ *      POST https://<org>.org.coveo.com/rest/search/v2
+ *
+ *  VÌ SAO ĐỌC KHOÁ TỪ TRANG MỖI LẦN CHẠY, KHÔNG GHI CỨNG VÀO CODE
+ *  --------------------------------------------------------------
+ *  Khoá này SLB tự phát cho trình duyệt khách và có thể đổi bất cứ lúc nào.
+ *  Ghi cứng thì ngày nó đổi, nguồn sẽ chết lặng lẽ. Đọc lại mỗi lần chạy tốn
+ *  thêm đúng một request.
+ *
+ *  Đã xác minh 2026-09-03: HTTP 200; lọc theo nguồn việc làm ra 979 tin;
+ *  "reservoir engineer" 43 tin, "petrophysicist" 26 tin, kèm thành phố, quốc
+ *  gia, mô tả và ngày đăng.
  */
-const SELECTORS = {
-  cookieAccept: '#onetrust-accept-btn-handler, button[aria-label*="Accept"]',
-  searchResults: '[data-ph-at-id="jobs-list"], .jobs-list, ul.search-results-list, [role="list"]',
-  card: '[data-ph-at-id="job-item"], li.jobs-list-item, article.job-tile',
-  title: '[data-ph-at-id="job-title"], a.job-title, h3 a, a[data-ph-at-job-title-text]',
-  location: '[data-ph-at-id="job-location"], .job-location, span.location',
-  category: '[data-ph-at-id="job-category"], .job-category',
-  posted: '[data-ph-at-id="job-post-date"], .job-date, time',
-  loadMore: 'button[data-ph-at-id="pagination-next-button"], a[aria-label="Next"], button.next',
-  detailBody: '.job-description, [data-ph-at-id="job-description"], .jd-info, main article',
-};
 
-const SEARCH_TERMS = ['reservoir', 'petroleum engineer', 'production engineer', 'petrophysic', 'geolog'];
+const HOST = 'https://careers.slb.com';
+const LISTING_PAGE = `${HOST}/job-listing`;
+
+/** Coveo trả tối đa 100 kết quả/lần; 50 là mức vừa phải cho cả hai phía. */
+const PAGE_SIZE = 50;
+
+/**
+ * Số trang lấy cho mỗi từ khoá. Khai riêng ở đây thay vì đọc `config.maxPages`
+ * lúc chạy: trường đó là tuỳ chọn trong SourceConfig nên kiểu của nó có thể
+ * `undefined`, dùng thẳng trong vòng lặp sẽ khiến vòng lặp không chạy lần nào.
+ */
+const MAX_PAGES = 2;
+
+const SEARCH_TERMS = [
+  'reservoir engineer',
+  'petroleum engineer',
+  'production engineer',
+  'petrophysicist',
+  'geologist',
+  'geophysicist',
+  'geoscientist',
+  'subsurface',
+];
+
+interface CoveoConfig {
+  org: string;
+  token: string;
+  searchHub: string;
+  source: string;
+}
+
+interface CoveoResult {
+  title?: string;
+  clickUri?: string;
+  raw?: {
+    title?: string;
+    city?: string;
+    country?: string | string[];
+    category?: string | string[];
+    jobexperiencelevel?: string | string[];
+    description?: string;
+    date?: number;
+    permanentid?: string;
+    clickableuri?: string;
+  };
+}
+
+interface CoveoResponse {
+  totalCount?: number;
+  results?: CoveoResult[];
+}
 
 export class SlbScraper extends BaseScraper {
   readonly config: SourceConfig = {
     key: 'slb',
     label: 'SLB Careers',
-    strategy: SourceStrategy.PLAYWRIGHT,
-    baseUrl: 'https://careers.slb.com',
+    strategy: SourceStrategy.JSON_API,
+    baseUrl: HOST,
     defaultCompany: 'SLB',
     companyType: CompanyType.SERVICE,
-    enabled: false, // Playwright cần >=2GB RAM — Render free (512MB) không đủ.
-    // Nguồn này vẫn được thu thập, nhưng do GitHub Actions chạy (runner có 7GB).
-    maxPages: 4,
+    enabled: true,
+    // Mỗi từ khoá lấy tối đa 2 trang × 50 = 100 tin. Với 8 từ khoá là 16 request,
+    // đủ phủ hết phần liên quan trong 979 tin mà không quét cả kho.
+    maxPages: MAX_PAGES,
     priority: 2,
+    notes: 'Coveo Search API · khoá đọc lại từ trang mỗi lần chạy',
   };
 
   protected async listJobs(ctx: ScrapeContext): Promise<RawJob[]> {
+    const cfg = await this.readCoveoConfig(ctx);
+    if (!cfg) return [];
+
     const jobs: RawJob[] = [];
 
     for (const term of SEARCH_TERMS) {
-      try {
-        const found = await ctx.browser.withPage(async (page) => {
-          const collected: RawJob[] = [];
+      for (let page = 0; page < MAX_PAGES; page++) {
+        let res: CoveoResponse;
+        try {
+          res = await ctx.http.post<CoveoResponse>(
+            `https://${cfg.org}.org.coveo.com/rest/search/v2`,
+            {
+              q: term,
+              numberOfResults: PAGE_SIZE,
+              firstResult: page * PAGE_SIZE,
+              searchHub: cfg.searchHub,
+              // Giới hạn trong kho tin tuyển dụng. Thiếu bộ lọc này thì Coveo
+              // trả về cả chỉ mục website (đo được 315.143 tài liệu).
+              aq: `@source=="${cfg.source}"`,
+            },
+            { headers: { Authorization: `Bearer ${cfg.token}` } },
+          );
+        } catch (e) {
+          ctx.logger.warn(`[slb] "${term}" trang ${page}: ${(e as Error).message}`);
+          break;
+        }
 
-          // Bắt song song các response JSON – nhiều SPA trả sẵn payload đầy đủ
-          page.on('response', async (res) => {
-            const url = res.url();
-            if (!/search|jobs|api/i.test(url)) return;
-            const ctype = res.headers()['content-type'] ?? '';
-            if (!ctype.includes('application/json')) return;
-            try {
-              const data = (await res.json()) as unknown;
-              const parsed = parsePhenomPayload(data, this.config.baseUrl, this.config.key);
-              collected.push(...parsed);
-            } catch {
-              /* payload không phải danh sách job */
-            }
-          });
+        const results = res.results ?? [];
+        for (const r of results) {
+          const job = toRawJob(r, this.config.key);
+          if (job) jobs.push(job);
+        }
 
-          const url = `${this.config.baseUrl}/search-jobs/${encodeURIComponent(term)}`;
-          await page.goto(url, { waitUntil: 'domcontentloaded' });
-          await page.click(SELECTORS.cookieAccept, { timeout: 3000 }).catch(() => undefined);
-
-          for (let p = 0; p < Math.min(ctx.maxPages, this.config.maxPages ?? 4); p++) {
-            const ok = await page
-              .waitForSelector(SELECTORS.card, { timeout: 15000, state: 'attached' })
-              .then(() => true)
-              .catch(() => false);
-            if (!ok) break;
-
-            const pageJobs = await page.$$eval(
-              SELECTORS.card,
-              (nodes, sel) =>
-                nodes.map((n) => {
-                  const q = (s: string) => n.querySelector(s);
-                  const titleEl = q(sel.title) as HTMLAnchorElement | null;
-                  return {
-                    title: titleEl?.textContent?.trim() ?? '',
-                    href: titleEl?.getAttribute('href') ?? '',
-                    location: q(sel.location)?.textContent?.trim() ?? '',
-                    category: q(sel.category)?.textContent?.trim() ?? '',
-                    posted: q(sel.posted)?.textContent?.trim() ?? '',
-                  };
-                }),
-              SELECTORS,
-            );
-
-            for (const j of pageJobs) {
-              if (!j.title || !j.href) continue;
-              collected.push({
-                source: this.config.key,
-                sourceUrl: this.absoluteUrl(j.href, this.config.baseUrl),
-                externalId: extractSlbId(j.href),
-                title: j.title,
-                companyName: this.config.defaultCompany ?? 'SLB',
-                locationRaw: j.location || null,
-                postedAtRaw: j.posted || null,
-                postedAt: parseFlexibleDate(j.posted),
-                description: j.category || null,
-                raw: { term, category: j.category },
-              });
-            }
-
-            const next = await page.$(SELECTORS.loadMore);
-            const disabled = next ? await next.getAttribute('disabled') : 'true';
-            if (!next || disabled !== null) break;
-            await next.click().catch(() => undefined);
-            await page.waitForTimeout(1200);
-          }
-
-          return collected;
-        });
-
-        jobs.push(...found);
-      } catch (e) {
-        ctx.logger.warn(`[slb] Lỗi khi tìm "${term}": ${(e as Error).message}`);
+        if (results.length < PAGE_SIZE) break;
       }
     }
 
+    ctx.logger.log(`[slb] ${SEARCH_TERMS.length} từ khoá -> ${jobs.length} tin (trước khử trùng lặp)`);
     return jobs;
   }
 
-  protected async enrich(job: RawJob, ctx: ScrapeContext): Promise<RawJob> {
-    return ctx.browser.withPage(async (page) => {
-      await page.goto(job.sourceUrl, { waitUntil: 'domcontentloaded' });
-      const body = await page
-        .waitForSelector(SELECTORS.detailBody, { timeout: 12000 })
-        .then((h) => h?.innerHTML() ?? null)
-        .catch(() => null);
+  /**
+   * Lấy 4 tham số Coveo từ input ẩn của trang danh sách.
+   * Trả null nếu thiếu bất kỳ tham số nào — thà không thu thập còn hơn gọi API
+   * bằng tham số đoán mò rồi nhận về dữ liệu của kho khác.
+   */
+  private async readCoveoConfig(ctx: ScrapeContext): Promise<CoveoConfig | null> {
+    let html: string;
+    try {
+      html = await ctx.http.get<string>(LISTING_PAGE);
+    } catch (e) {
+      ctx.logger.warn(`[slb] không tải được trang danh sách: ${(e as Error).message}`);
+      return null;
+    }
 
-      // JSON-LD trên trang chi tiết (Phenom People có nhúng sẵn)
-      const ld = await page
-        .$eval('script[type="application/ld+json"]', (el) => el.textContent ?? '')
-        .catch(() => '');
-      let datePosted: string | null = null;
-      let employmentType: string | null = null;
-      try {
-        const parsed = JSON.parse(ld) as {
-          datePosted?: string;
-          employmentType?: string | string[];
-        };
-        datePosted = parsed?.datePosted ?? null;
-        employmentType = Array.isArray(parsed?.employmentType)
-          ? parsed.employmentType[0]
-          : (parsed?.employmentType ?? null);
-      } catch {
-        /* không có JSON-LD */
-      }
+    const read = (id: string): string | null => {
+      // Thuộc tính value có thể đứng trước hoặc sau id tuỳ cách render.
+      const m =
+        new RegExp(`id="${id}"[^>]*value="([^"]*)"`, 'i').exec(html) ??
+        new RegExp(`value="([^"]*)"[^>]*id="${id}"`, 'i').exec(html);
+      return m?.[1]?.trim() || null;
+    };
 
-      return {
-        ...job,
-        description: this.toPlainText(body) ?? job.description,
-        descriptionHtml: body ?? job.descriptionHtml ?? null,
-        employmentTypeRaw: employmentType ?? job.employmentTypeRaw ?? null,
-        postedAt: job.postedAt ?? parseFlexibleDate(datePosted),
-      };
-    });
+    const org = read('organizationId');
+    const token = read('accessToken');
+    const searchHub = read('searchHub');
+    const source = read('searchsource');
+
+    if (!org || !token || !searchHub || !source) {
+      ctx.logger.warn(
+        `[slb] thiếu tham số Coveo trên trang (org=${!!org} token=${!!token} hub=${!!searchHub} source=${!!source}) — trang có thể đã đổi cấu trúc`,
+      );
+      return null;
+    }
+    return { org, token, searchHub, source };
   }
 }
 
-/** Payload dạng Phenom People (SLB, Halliburton, nhiều IOC dùng chung nền tảng). */
-function parsePhenomPayload(data: unknown, baseUrl: string, source: string): RawJob[] {
-  const root = data as {
-    refineSearch?: { data?: { jobs?: PhenomJob[] } };
-    eagerLoadRefineSearch?: { data?: { jobs?: PhenomJob[] } };
-    jobs?: PhenomJob[];
+function toRawJob(r: CoveoResult, source: string): RawJob | null {
+  const raw = r.raw ?? {};
+  const title = (raw.title ?? r.title ?? '').trim();
+  const url = raw.clickableuri ?? r.clickUri;
+  if (!title || !url) return null;
+
+  return {
+    source,
+    // Mã tin của SLB CÓ CHỨA khoảng trắng ("...id=EF13810-en_US 1"). Đã kiểm
+    // chứng: bỏ phần sau khoảng trắng thì trang trả về 46KB không có nội dung
+    // tin, giữ nguyên thì 107KB có đủ. Nên mã hoá chứ tuyệt đối không cắt.
+    sourceUrl: url.trim().replace(/ /g, '%20'),
+    externalId: raw.permanentid ?? null,
+    title,
+    companyName: 'SLB',
+    locationRaw: formatLocation(raw.city, raw.country),
+    description: stripCdataHtml(raw.description),
+    descriptionHtml: null,
+    employmentTypeRaw: null,
+    postedAtRaw: raw.date ? new Date(raw.date).toISOString() : null,
+    raw: raw as unknown as Record<string, unknown>,
   };
-  const list =
-    root?.refineSearch?.data?.jobs ?? root?.eagerLoadRefineSearch?.data?.jobs ?? root?.jobs ?? [];
-  if (!Array.isArray(list)) return [];
-
-  return list
-    .filter((j) => j?.title && (j.jobUrl || j.applyUrl))
-    .map((j) => ({
-      source,
-      sourceUrl: new URL(j.jobUrl ?? j.applyUrl!, baseUrl).toString(),
-      externalId: j.jobId ?? j.reqId ?? null,
-      title: j.title!,
-      companyName: j.company ?? 'SLB',
-      locationRaw: [j.city, j.state, j.country].filter(Boolean).join(', ') || j.location || null,
-      description: j.descriptionTeaser ?? j.description ?? null,
-      postedAtRaw: j.postedDate ?? null,
-      postedAt: parseFlexibleDate(j.postedDate ?? null),
-      employmentTypeRaw: j.type ?? null,
-      raw: { via: 'xhr' },
-    }));
 }
 
-interface PhenomJob {
-  jobId?: string;
-  reqId?: string;
-  title?: string;
-  jobUrl?: string;
-  applyUrl?: string;
-  company?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  location?: string;
-  description?: string;
-  descriptionTeaser?: string;
-  postedDate?: string;
-  type?: string;
+/**
+ * Ghép thành phố với quốc gia.
+ *
+ * Bỏ "Multi-Location": đó là chữ SLB dùng cho tin tuyển nhiều nơi, không phải
+ * tên thành phố. Giữ lại sẽ khiến normalizer lấy nó làm city và hiện lên giao
+ * diện như một địa danh có thật.
+ */
+function formatLocation(city?: string, country?: string | string[]): string | null {
+  const c = Array.isArray(country) ? country[0] : country;
+  const realCity = city && !/multi-?location/i.test(city) ? city : null;
+  return [realCity, c].filter(Boolean).join(', ') || null;
 }
 
-function extractSlbId(href: string): string | null {
-  const m = href.match(/\/job\/([\w-]+)/) ?? href.match(/(\d{6,})/);
-  return m ? m[1] : null;
+/** Coveo trả mô tả bọc trong CDATA và còn nguyên thẻ HTML. */
+function stripCdataHtml(v?: string): string | null {
+  if (!v) return null;
+  return (
+    v
+      .replace(/^\s*<!\[CDATA\[/, '')
+      .replace(/\]\]>\s*$/, '')
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/\s{2,}/g, ' ')
+      .trim() || null
+  );
 }

@@ -68,6 +68,24 @@ export const COUNTRIES: CountryDef[] = [
   { code: 'VN', iso3: 'VNM', name: 'Vietnam', region: 'Asia Pacific', currency: 'VND', aliases: ['vietnam', 'viet nam', 'ho chi minh', 'hanoi', 'vung tau'] },
   { code: 'TH', iso3: 'THA', name: 'Thailand', region: 'Asia Pacific', currency: 'THB', aliases: ['thailand', 'bangkok', 'songkhla'] },
   { code: 'BN', iso3: 'BRN', name: 'Brunei', region: 'Asia Pacific', currency: 'BND', aliases: ['brunei', 'seria', 'bandar seri begawan'] },
+  // ── Bổ sung 2026-09-03 sau khi mở được nguồn SLB ──
+  // SLB tuyển ở 80 địa điểm khác nhau; 13 nước dưới đây chưa có trong bảng, nên
+  // tin ở đó sẽ rơi vào country = null và biến mất khỏi bộ lọc quốc gia.
+  { code: 'JP', iso3: 'JPN', name: 'Japan', region: 'Asia Pacific', currency: 'JPY', aliases: ['japan', 'tokyo', 'yokohama'] },
+  { code: 'PH', iso3: 'PHL', name: 'Philippines', region: 'Asia Pacific', currency: 'PHP', aliases: ['philippines', 'manila', 'batangas'] },
+  { code: 'MM', iso3: 'MMR', name: 'Myanmar', region: 'Asia Pacific', currency: 'MMK', aliases: ['myanmar', 'burma', 'yangon'] },
+  { code: 'PK', iso3: 'PAK', name: 'Pakistan', region: 'Asia Pacific', currency: 'PKR', aliases: ['pakistan', 'karachi', 'islamabad', 'lahore'] },
+  { code: 'TM', iso3: 'TKM', name: 'Turkmenistan', region: 'Caspian', currency: 'TMT', aliases: ['turkmenistan', 'balkanabat', 'ashgabat'] },
+  // 'turkiye' là cách viết chính thức từ 2022 và là chuỗi SLB đang dùng.
+  { code: 'TR', iso3: 'TUR', name: 'Turkey', region: 'Europe', currency: 'TRY', aliases: ['turkey', 'turkiye', 'türkiye', 'istanbul', 'ankara'] },
+  { code: 'HU', iso3: 'HUN', name: 'Hungary', region: 'Europe', currency: 'HUF', aliases: ['hungary', 'budapest'] },
+  { code: 'GA', iso3: 'GAB', name: 'Gabon', region: 'Africa', currency: 'XAF', aliases: ['gabon', 'port-gentil', 'port gentil', 'libreville'] },
+  { code: 'UG', iso3: 'UGA', name: 'Uganda', region: 'Africa', currency: 'UGX', aliases: ['uganda', 'kampala', 'hoima'] },
+  // 'south sudan' dài hơn 'sudan' nên ALIAS_INDEX (sắp theo độ dài giảm dần) sẽ
+  // khớp nó trước — không lo tin Nam Sudan bị gán nhầm sang Sudan.
+  { code: 'SS', iso3: 'SSD', name: 'South Sudan', region: 'Africa', currency: 'SSP', aliases: ['south sudan', 'juba'] },
+  { code: 'EC', iso3: 'ECU', name: 'Ecuador', region: 'Latin America', currency: 'USD', aliases: ['ecuador', 'quito', 'guayaquil'] },
+  { code: 'SR', iso3: 'SUR', name: 'Suriname', region: 'Latin America', currency: 'SRD', aliases: ['suriname', 'paramaribo'] },
   { code: 'AU', iso3: 'AUS', name: 'Australia', region: 'Asia Pacific', currency: 'AUD', aliases: ['australia', 'perth', 'brisbane', 'melbourne', 'karratha', 'darwin'] },
   { code: 'IN', iso3: 'IND', name: 'India', region: 'Asia Pacific', currency: 'INR', aliases: ['india', 'mumbai', 'chennai', 'pune', 'ahmedabad', 'bengaluru', 'bangalore'] },
   { code: 'CN', iso3: 'CHN', name: 'China', region: 'Asia Pacific', currency: 'CNY', aliases: ['china', 'beijing', 'shanghai', 'shenzhen'] },
@@ -134,4 +152,6 @@ export const FALLBACK_FX_TO_USD: Record<string, number> = {
   GHS: 14.5, XAF: 604, XOF: 604, NAD: 18.6, MZN: 63.8, AOA: 850, IQD: 1310,
   RON: 4.58, PGK: 3.8, AZN: 1.7, VES: 36, ZAR: 18.5, BND: 1.35, TWD: 32,
   SYP: 13000,
+  JPY: 157, PHP: 58, MMK: 2100, PKR: 278, TMT: 3.5, TRY: 34,
+  HUF: 360, UGX: 3700, SSP: 4500, SRD: 35,
 };
