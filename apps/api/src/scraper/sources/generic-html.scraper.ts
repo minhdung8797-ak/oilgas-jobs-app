@@ -38,6 +38,11 @@ import {
  *
  *  Muốn phá lệ thì phải thêm trường phân biệt "nhà tuyển dụng" với "đơn vị môi
  *  giới" trong DTO và hiển thị rõ trên giao diện — chưa làm.
+ *
+ *  NGOẠI LỆ ĐÃ ĐƯỢC CHẤP NHẬN: `kwader.scraper.ts` (cổng ngành dầu khí của Bộ
+ *  Năng lượng Oman). Quy tắc trên nhắm vào việc GIẤU TÊN nhà tuyển dụng, mà
+ *  Kwader thì ghi rõ tên và logo nhà điều hành trên từng thẻ tin, nên lý do
+ *  loại trừ không áp dụng. Xem phần đầu tệp đó để biết đánh đổi kèm theo.
  */
 export interface GenericSourceDef {
   key: string;

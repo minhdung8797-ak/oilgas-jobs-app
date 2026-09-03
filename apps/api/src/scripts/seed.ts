@@ -56,6 +56,19 @@ const COMPANIES: {
   { name: 'Vermilion Energy', type: 'IOC', website: 'https://www.vermilionenergy.com', careersUrl: 'https://vermilionenergy.wd10.myworkdayjobs.com/VEI_EXTERNAL', hq: 'CA' },
   { name: 'DNO', type: 'IOC', website: 'https://www.dno.no', careersUrl: 'https://dno.wd3.myworkdayjobs.com/DNO_Careers', hq: 'NO' },
   { name: 'Savannah Energy', type: 'IOC', website: 'https://www.savannah-energy.com', careersUrl: 'https://careers.savannah-energy.com', hq: 'GB' },
+  // ── Nhà điều hành ở Oman, tin đến qua cổng Kwader của Bộ Năng lượng ──
+  // Giữ nguyên tên pháp nhân tuyển dụng như Kwader ghi. Không gộp "bp Oman" vào
+  // "bp" hay "Oxy Oman" vào "Occidental Petroleum": đó là các liên doanh riêng,
+  // gộp lại sẽ ghi sai ai đang tuyển.
+  { name: 'OQ', type: 'NOC', website: 'https://www.oq.com', careersUrl: 'https://kwader.mem.gov.om/jobs', hq: 'OM' },
+  { name: 'ARA Petroleum', type: 'IOC', website: 'https://www.arapetroleum.com', careersUrl: 'https://kwader.mem.gov.om/jobs', hq: 'OM' },
+  { name: 'Daleel Petroleum', type: 'IOC', website: 'https://www.daleelpetroleum.com', careersUrl: 'https://kwader.mem.gov.om/jobs', hq: 'OM' },
+  { name: 'Oxy Oman', type: 'IOC', website: 'https://www.oxy.com', careersUrl: 'https://kwader.mem.gov.om/jobs', hq: 'OM' },
+  { name: 'Oman LNG', type: 'NOC', website: 'https://omanlng.co.om', careersUrl: 'https://kwader.mem.gov.om/jobs', hq: 'OM' },
+  { name: 'bp Oman', type: 'IOC', website: 'https://www.bp.com/en/global/corporate/who-we-are/where-we-operate/oman.html', careersUrl: 'https://kwader.mem.gov.om/jobs', hq: 'OM' },
+  { name: 'CC Energy Development', type: 'IOC', website: 'https://www.ccedoman.com', careersUrl: 'https://kwader.mem.gov.om/jobs', hq: 'OM' },
+  { name: 'Masar Petroleum', type: 'IOC', website: 'https://kwader.mem.gov.om/jobs', careersUrl: 'https://kwader.mem.gov.om/jobs', hq: 'OM' },
+  { name: 'Tethys Oil', type: 'IOC', website: 'https://www.tethysoil.com', careersUrl: 'https://kwader.mem.gov.om/jobs', hq: 'OM' },
   { name: 'Wood', type: 'EPC', website: 'https://www.woodplc.com', hq: 'GB' },
   { name: 'Petrofac', type: 'EPC', website: 'https://www.petrofac.com', hq: 'GB' },
   { name: 'TechnipFMC', type: 'EPC', website: 'https://www.technipfmc.com', hq: 'GB' },

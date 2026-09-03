@@ -13,6 +13,7 @@ import { WORKABLE_TENANTS, WorkableScraper } from './sources/workable.scraper';
 import { ULTIPRO_TENANTS, UltiproScraper } from './sources/ultipro.scraper';
 import { MANATAL_TENANTS, ManatalScraper } from './sources/manatal.scraper';
 import { SF_SITEMAP_TENANTS, SfSitemapScraper } from './sources/sf-sitemap.scraper';
+import { KwaderScraper } from './sources/kwader.scraper';
 
 /**
  * Registry tập trung mọi scraper.
@@ -48,6 +49,8 @@ export class ScraperRegistry {
       ...MANATAL_TENANTS.map((t) => new ManatalScraper(t)),
       // SuccessFactors đời mới (INPEX…) — danh sách render bằng JS, đi vòng qua sitemap
       ...SF_SITEMAP_TENANTS.map((t) => new SfSitemapScraper(t)),
+      // Cổng ngành dầu khí của Bộ Năng lượng Oman — 10 nhà điều hành, gồm PDO
+      new KwaderScraper(),
     ];
     this.logger.log(
       `Đã nạp ${this.scrapers.length} scraper (${this.enabled().length} đang bật): ` +
