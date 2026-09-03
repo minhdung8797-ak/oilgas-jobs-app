@@ -797,4 +797,39 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     // jobs@kappaeng.com.
     notes: 'HTML tĩnh · 1 tin · link chi tiết là PDF, apply qua email',
   },
+  {
+    key: 'stoneridge',
+    label: 'Stone Ridge Technology (ECHELON) Careers',
+    company: 'Stone Ridge Technology',
+    companyType: CompanyType.CONSULTANCY,
+    baseUrl: 'https://stoneridgetechnology.com',
+    searchUrlTemplate: 'https://stoneridgetechnology.com/company/careers/',
+    keywords: [''],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      card: '.job-card',
+      title: 'h5.card-title a',
+      // Thẻ tin có HAI <p class="overline"> liền nhau: cái đầu là địa điểm
+      // ("Bel Air, MD"), cái sau là ngày ("Posted Jan 01, 2021"). Dùng bộ chọn
+      // anh-em liền kề để lấy đúng cái thứ hai, vì scraper luôn lấy .first().
+      location: 'p.overline',
+      posted: 'p.overline + p.overline',
+      snippet: 'p.card-text',
+      detailBody: 'main, article, .entry-content',
+    },
+    enabled: true,
+    // Xác minh 2026-09-03: 2 tin (Scientific Software Developer, Lead Software
+    // Engineer), cả hai ở Bel Air, MD và đều đăng 01/01/2021.
+    //
+    // Hiện nguồn này sẽ cho ra 0 tin hiển thị, vì HAI lý do độc lập:
+    //  1. Cả hai là việc LẬP TRÌNH. Mô tả đầy chữ "reservoir simulation" nhưng
+    //     classifier vẫn xếp OTHER — đúng, vì cổng ngành và điểm chức danh chặn
+    //     lại. Đã kiểm tay: khớp từ khoá "reservoir simulation" mà vẫn OTHER.
+    //  2. Tin từ 2021, quá JOB_TTL_DAYS (60) nên bị ẩn dù có phân loại được.
+    //
+    // Vẫn bật: ECHELON là bộ mô phỏng mỏ chạy GPU, họ có tuyển vai trò kỹ thuật
+    // mỏ theo đợt, và nguồn chỉ tốn 1 request/ngày.
+    notes: 'HTML tĩnh · 2 tin lập trình từ 2021 · hiện không có tin nào hiển thị',
+  },
 ];

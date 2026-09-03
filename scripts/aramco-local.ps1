@@ -209,6 +209,10 @@ if ($dbVal -notmatch '^postgres(ql)?://') {
   Fail ("DATABASE_URL sai dinh dang - phai bat dau bang postgresql://. 10 ky tu dau: [{0}]" -f $dbVal.Substring(0, [Math]::Min(10, $dbVal.Length)))
 }
 
+# Chi lay phan HOST de in ra. Host khong phai bi mat, con mat khau thi nam
+# truoc dau '@' nen tuyet doi khong in ca chuoi.
+$dbHostPreview = if ($dbVal -match '@([^:/?]+)') { $Matches[1] } else { '(khong doc duoc host)' }
+
 # Chan truong hop tro ve may noi bo. Da dinh that: chuoi dev trong .env tro ve
 # localhost, scraper chay tron tru nhung ghi vao mot database rong khong ai doc.
 if ($dbVal -match '@(localhost|127\.0\.0\.1|\[::1\])[:/]') {
@@ -216,6 +220,26 @@ if ($dbVal -match '@(localhost|127\.0\.0\.1|\[::1\])[:/]') {
 DATABASE_URL dang tro ve localhost (day la chuoi dev cua Docker trong file .env).
 Scraper nay phai ghi vao Neon - cung database ma trang web dang doc.
 Tao file .env.scraper o $Root voi chuoi Neon that; no se duoc uu tien hon .env.
+"@
+}
+
+# Chan chuoi VI DU chua duoc thay bang chuoi that.
+#
+# Da dinh that: file .env.scraper chua nguyen dong mau 'ep-xxxx.neon.tech'.
+# Prisma khi do bao "Can't reach database server at ep-xxxx.neon.tech:5432" -
+# dung ve ky thuat nhung khong ai doc ra la minh quen thay chuoi. Bat o day thi
+# thong bao noi thang van de.
+if ($dbVal -match 'xxxx|<[a-z_]+>|user:pass|example\.com|YOUR_|change[-_]?me') {
+  Fail @"
+DATABASE_URL van la chuoi VI DU, chua thay bang chuoi that.
+Host dang ghi: $dbHostPreview
+
+Lay chuoi that o mot trong hai cho:
+  - Render:  dashboard -> dich vu og-api -> tab Environment -> bien DATABASE_URL
+  - Neon:    console.neon.tech -> project -> o Connection string
+
+Roi mo lai $ScraperEnv va thay CA DONG, chi giu dung dinh dang:
+  DATABASE_URL=postgresql://<user_that>:<mat_khau_that>@<host_that>/neondb?sslmode=require
 "@
 }
 

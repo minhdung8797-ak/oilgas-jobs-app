@@ -14,7 +14,7 @@ export interface CountryDef {
  * và được đánh dấu `locationRaw` để review thủ công.
  */
 export const COUNTRIES: CountryDef[] = [
-  { code: 'US', iso3: 'USA', name: 'United States', region: 'North America', currency: 'USD', aliases: ['usa', 'u.s.', 'u.s.a', 'united states of america', 'texas', 'houston', 'oklahoma', 'louisiana', 'north dakota', 'midland', 'denver', 'alaska', 'new mexico', 'pennsylvania', 'california'] },
+  { code: 'US', iso3: 'USA', name: 'United States', region: 'North America', currency: 'USD', aliases: ['usa', 'u.s.', 'u.s.a', 'united states of america', 'texas', 'houston', 'oklahoma', 'louisiana', 'north dakota', 'midland', 'denver', 'alaska', 'new mexico', 'pennsylvania', 'california', 'bel air'] },
   { code: 'CA', iso3: 'CAN', name: 'Canada', region: 'North America', currency: 'CAD', aliases: ['canada', 'alberta', 'calgary', 'saskatchewan', 'newfoundland'] },
   { code: 'MX', iso3: 'MEX', name: 'Mexico', region: 'Latin America', currency: 'MXN', aliases: ['mexico', 'villahermosa', 'ciudad del carmen'] },
   { code: 'BR', iso3: 'BRA', name: 'Brazil', region: 'Latin America', currency: 'BRL', aliases: ['brazil', 'brasil', 'rio de janeiro', 'macae'] },
