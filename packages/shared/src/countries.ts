@@ -27,7 +27,9 @@ export const COUNTRIES: CountryDef[] = [
   { code: 'NO', iso3: 'NOR', name: 'Norway', region: 'Europe', currency: 'NOK', aliases: ['norway', 'norge', 'stavanger', 'bergen', 'oslo', 'trondheim', 'harstad'] },
   { code: 'NL', iso3: 'NLD', name: 'Netherlands', region: 'Europe', currency: 'EUR', aliases: ['netherlands', 'holland', 'the hague', 'den haag', 'amsterdam', 'rijswijk', 'assen'] },
   { code: 'DK', iso3: 'DNK', name: 'Denmark', region: 'Europe', currency: 'DKK', aliases: ['denmark', 'copenhagen', 'esbjerg'] },
-  { code: 'DE', iso3: 'DEU', name: 'Germany', region: 'Europe', currency: 'EUR', aliases: ['germany', 'deutschland', 'celle', 'hamburg', 'munich'] },
+  // 'hannover'/'lower saxony': Vermilion đặt đội thăm dò ở đó và ô địa điểm chỉ
+  // ghi "Hannover, Lower Saxony", không kèm tên nước.
+  { code: 'DE', iso3: 'DEU', name: 'Germany', region: 'Europe', currency: 'EUR', aliases: ['germany', 'deutschland', 'celle', 'hamburg', 'munich', 'hannover', 'hanover', 'lower saxony', 'niedersachsen'] },
   { code: 'FR', iso3: 'FRA', name: 'France', region: 'Europe', currency: 'EUR', aliases: ['france', 'paris', 'pau', 'la defense', 'courbevoie'] },
   { code: 'IT', iso3: 'ITA', name: 'Italy', region: 'Europe', currency: 'EUR', aliases: ['italy', 'italia', 'milan', 'ravenna', 'san donato'] },
   { code: 'RO', iso3: 'ROU', name: 'Romania', region: 'Europe', currency: 'RON', aliases: ['romania', 'bucharest', 'ploiesti', 'craiova', 'campina'] },

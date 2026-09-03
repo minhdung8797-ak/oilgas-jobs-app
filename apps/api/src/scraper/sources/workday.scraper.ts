@@ -196,6 +196,32 @@ export const WORKDAY_TENANTS: WorkdayTenant[] = [
     // (bí danh 'uk' đã có sẵn cho Anh nên nhận diện được).
     // Hiện chưa tin nào thuộc 4 nhóm — toàn kỹ thuật viên, kế toán, IT.
   },
+  {
+    key: 'vermilion',
+    label: 'Vermilion Energy Careers',
+    company: 'Vermilion Energy',
+    companyType: CompanyType.IOC,
+    host: 'https://vermilionenergy.wd10.myworkdayjobs.com',
+    tenant: 'vermilionenergy',
+    site: 'VEI_EXTERNAL',
+    // Xác minh 2026-09-01: HTTP 200, total = 10, có "Sr. Geophysicist (w/m/d)"
+    // và "Senior Geologe/Geologin (w/m/d)" ở Hannover.
+    //
+    // Hai chức danh Đức đó phân loại được nhờ chữ "Geophysicist"; riêng
+    // "Geologe/Geologin" thì KHÔNG khớp từ khoá tiếng Anh nào — nếu muốn bắt cả
+    // tiếng Đức thì phải bổ sung mẫu vào keywords.ts, chưa làm.
+  },
+  {
+    key: 'dno',
+    label: 'DNO Careers',
+    company: 'DNO',
+    companyType: CompanyType.IOC,
+    host: 'https://dno.wd3.myworkdayjobs.com',
+    tenant: 'dno',
+    site: 'DNO_Careers',
+    // Xác minh 2026-09-01: HTTP 200, total = 2 (đều là thực tập hè ở Stavanger),
+    // chưa tin nào thuộc 4 nhóm.
+  },
   // ── Đã xác minh 2026-08-30 bằng cách gọi thẳng /wday/cxs/... và nhận HTTP 200 ──
   {
     key: 'chevron',

@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio';
-import { CompanyType, RawJob, SourceConfig, SourceStrategy, parseFlexibleDate, sleep } from '@og/shared';
+import { COUNTRIES, CompanyType, RawJob, SourceConfig, SourceStrategy, parseFlexibleDate, sleep } from '@og/shared';
 import { BaseScraper, ScrapeContext } from '../lib/base-scraper';
 import {
   extractJobPostingJsonLd,
@@ -163,7 +163,7 @@ export class GenericHtmlScraper extends BaseScraper {
     return {
       ...job,
       companyName: ld?.hiringOrganization?.name ?? job.companyName ?? this.def.company ?? null,
-      locationRaw: formatJsonLdLocation(ld) ?? job.locationRaw,
+      locationRaw: formatJsonLdLocation(ld) ?? extractMicrodataLocation($) ?? job.locationRaw,
       salaryRaw: formatJsonLdSalary(ld) ?? job.salaryRaw ?? null,
       employmentTypeRaw:
         (Array.isArray(ld?.employmentType) ? ld?.employmentType[0] : ld?.employmentType) ?? null,
@@ -172,6 +172,42 @@ export class GenericHtmlScraper extends BaseScraper {
       descriptionHtml: bodyHtml ?? null,
     };
   }
+}
+
+/**
+ * Đọc địa điểm từ MICRODATA schema.org ở trang chi tiết.
+ *
+ * Vì sao cần thêm, dù đã có JSON-LD: các cổng SuccessFactors nhúng
+ * schema.org bằng thuộc tính `itemprop` trên thẻ `<meta>` chứ không phát hành
+ * khối JSON-LD. Chỉ đọc JSON-LD thì bỏ sót toàn bộ nhóm đó — Savannah, Woodside,
+ * OMV, Vår Energi, Origin đều nằm trong nhóm này, và hậu quả là địa điểm rỗng,
+ * `country` thành null, tin biến mất khỏi bộ lọc quốc gia.
+ *
+ * `addressCountry` theo chuẩn schema.org là mã ISO 3166-1 alpha-2 ("NG"), nên
+ * đổi sang TÊN nước trước khi trả về. Đây không phải đoán: trường này được định
+ * nghĩa là mã quốc gia, khác hẳn một chuỗi địa chỉ tự do.
+ */
+function extractMicrodataLocation($: cheerio.CheerioAPI): string | null {
+  const get = (prop: string): string | null => {
+    const el = $(`[itemprop="${prop}"]`).first();
+    if (el.length === 0) return null;
+    const v = (el.attr('content') ?? el.text() ?? '').trim();
+    return v || null;
+  };
+
+  const locality = get('addressLocality');
+  const region = get('addressRegion');
+  const rawCountry = get('addressCountry');
+
+  const country =
+    rawCountry && /^[A-Za-z]{2}$/.test(rawCountry)
+      ? (COUNTRIES.find((c) => c.code === rawCountry.toUpperCase())?.name ?? rawCountry)
+      : rawCountry;
+
+  // Bỏ `region` nếu nó chỉ là mã bang 2 ký tự ("LA" cho Lagos): giữ lại sẽ khiến
+  // normalizer tưởng đó là mã nước và cho ra Lào.
+  const parts = [locality, region && region.length > 2 ? region : null, country].filter(Boolean);
+  return parts.length ? parts.join(', ') : null;
 }
 
 /**
@@ -673,5 +709,31 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     // thuộc 4 nhóm. Link tin trỏ sang bảng tuyển dụng PeopleHR của họ.
     // Thẻ tin chỉ có chức danh, không có địa điểm.
     notes: 'HTML tĩnh · 1 tin · link apply trỏ sang PeopleHR',
+  },
+  {
+    key: 'savannah',
+    label: 'Savannah Energy Careers',
+    company: 'Savannah Energy',
+    companyType: CompanyType.IOC,
+    baseUrl: 'https://careers.savannah-energy.com',
+    searchUrlTemplate: 'https://careers.savannah-energy.com/search/?q={keyword}&startrow={page}',
+    keywords: ['reservoir', 'petroleum', 'production', 'geologist', 'geophysicist', 'subsurface'],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      card: 'tr.data-row, li.job-tile',
+      title: 'a.jobTitle-link',
+      posted: 'span.jobDate, [id$="-section-date-value"]',
+      detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
+    },
+    // KHÔNG đặt defaultLocation: Savannah hoạt động ở Nigeria, Niger, Cameroon,
+    // Anh và Pháp — gán cứng một nước sẽ sai với phần lớn tin. Địa điểm lấy từ
+    // microdata ở trang chi tiết thay vì đoán (xem extractMicrodataLocation).
+    enabled: true,
+    // Xác minh 2026-09-01: 2 tin ("Treasury Manager", "Senior Field Project
+    // Engineer"), chưa tin nào thuộc 4 nhóm. Dòng tin không có ô địa điểm, nhưng
+    // trang chi tiết có microdata đầy đủ: addressLocality="Victoria Island",
+    // addressRegion="LA", addressCountry="NG".
+    notes: 'SuccessFactors · địa điểm lấy từ microdata trang chi tiết',
   },
 ];
