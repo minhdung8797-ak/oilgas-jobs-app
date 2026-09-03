@@ -52,10 +52,39 @@ export class ScraperRegistry {
       // Cổng ngành dầu khí của Bộ Năng lượng Oman — 10 nhà điều hành, gồm PDO
       new KwaderScraper(),
     ];
+    this.assertUniqueKeys();
+
     this.logger.log(
       `Đã nạp ${this.scrapers.length} scraper (${this.enabled().length} đang bật): ` +
         this.enabled().map((s) => s.config.key).join(', '),
     );
+  }
+
+  /**
+   * Hai nguồn trùng khoá là lỗi nghiêm trọng, phải chết ngay lúc khởi động.
+   *
+   * Vì sao không chỉ ghi cảnh báo: `runSource()` tra nguồn bằng `get(key)`, mà
+   * hàm đó trả về mục ĐẦU TIÊN khớp. Nên nếu có hai mục cùng khoá, `runAll()`
+   * chọn đúng mục đang bật rồi lại gọi `runSource(key)` và chạy nhầm mục kia.
+   *
+   * Đã xảy ra thật với `totalenergies`: một mục cũ đã tắt, trỏ vào trang giới
+   * thiệu không có tin nào, che mất mục Avature đang chạy được. Mỗi ngày tốn 48
+   * giây để trả về found=0, mà trạng thái vẫn là SUCCESS nên chẳng có gì báo
+   * động — mất nhiều ngày mới phát hiện. Ném lỗi ngay thì lần deploy đầu tiên
+   * đã đỏ và ai cũng thấy.
+   */
+  private assertUniqueKeys(): void {
+    const count = new Map<string, number>();
+    for (const s of this.scrapers) {
+      count.set(s.config.key, (count.get(s.config.key) ?? 0) + 1);
+    }
+    const dup = [...count.entries()].filter(([, n]) => n > 1).map(([k, n]) => `${k} (×${n})`);
+    if (dup.length > 0) {
+      throw new Error(
+        `Trùng khoá nguồn: ${dup.join(', ')}. Mỗi nguồn phải có khoá duy nhất, ` +
+          'nếu không runSource() sẽ chạy nhầm mục và nguồn thật không bao giờ được thu thập.',
+      );
+    }
   }
 
   all(): BaseScraper[] {

@@ -248,26 +248,17 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     enabled: false,
     notes: 'TẮT: job board bên thứ ba + selector chưa xác minh (rà soát 2026-08-30)',
   },
-  {
-    key: 'totalenergies',
-    label: 'TotalEnergies Careers',
-    company: 'TotalEnergies',
-    companyType: CompanyType.IOC,
-    baseUrl: 'https://careers.totalenergies.com',
-    searchUrlTemplate: 'https://careers.totalenergies.com/en/search-jobs?keyword={keyword}&page={page}',
-    keywords: ['reservoir', 'petroleum', 'production engineer', 'geoscience', 'geophysicist'],
-    firstPage: 1,
-    maxPages: 3,
-    selectors: {
-      card: '.job-card, li.job-item, article',
-      title: 'a.job-title, h3 a, a',
-      location: '.job-location, .location',
-      posted: '.job-date, time',
-      detailBody: '.job-description, .description',
-    },
-    enabled: false,
-    notes: 'Bật sau khi xác nhận selector thực tế',
-  },
+  // ĐÃ XOÁ (2026-09-03): một mục 'totalenergies' cũ trỏ vào
+  // careers.totalenergies.com — trang giới thiệu, không có tin nào — và để
+  // `enabled: false`.
+  //
+  // Nó gây ra một lỗi ngấm ngầm suốt nhiều ngày: hai mục TRÙNG KHOÁ. `runAll`
+  // duyệt danh sách nguồn đang bật (lấy đúng mục Avature), nhưng rồi gọi lại
+  // `runSource(key)`, mà hàm đó tra theo khoá và trả về mục ĐẦU TIÊN — tức mục
+  // đã tắt này. Kết quả: mỗi ngày quét nhầm trang giới thiệu, tốn 48 giây,
+  // found=0, và trạng thái vẫn là SUCCESS nên không ai nghi ngờ.
+  //
+  // Registry giờ chặn trùng khoá ngay lúc khởi động (xem scraper.registry.ts).
   // ADNOC đã chuyển sang PhenomScraper (xem phenom.scraper.ts): cổng thật là
   // jobs.adnoc.ae chạy Phenom People, không phải SuccessFactors ở careers.adnoc.ae.
   {
