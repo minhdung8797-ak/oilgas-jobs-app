@@ -1,38 +1,47 @@
 <#
-  Chay scraper cho cac nguon CHAN IP TRUNG TAM DU LIEU, tu chinh may cua ban.
+  Chay MOT nguon scraper tu chinh may cua ban, ghi thang vao Neon.
 
-  VI SAO PHAI CHAY O DAY MA KHONG PHAI TREN MAY CHU
-  -------------------------------------------------
-  Saudi Aramco chan theo dai IP. Do duoc ba lan, ba noi:
+  ⚠️ ARAMCO KHONG CHAY DUOC BANG SCRIPT NAY - va ly do dang doc ky.
 
-      Render (Oregon)   1131 giay -> 0 tin
-      Render (Oregon)   1128 giay -> 0 tin
-      GitHub Actions    1126 giay -> 0 tin
-      May cua ban        0.3 giay -> 52 tin (6 tu khoa)
+  Script nay ban dau duoc viet cho Aramco, dua tren gia thuyet "Aramco chan
+  theo dai IP trung tam du lieu, nen chay tu IP dan dung se vao duoc".
+  GIA THUYET DO SAI. Lan chay 2026-09-03 tu chinh may nguoi dung cho ket qua:
 
-  Moi request tu may chu deu treo toi het gio roi tra rong - dac trung cua
-  tuong lua chong bot, khong phai loi cau hinh. Tu IP dan dung thi vao binh
-  thuong. Nen nguon nay chi co the chay tu day.
+      trinh duyet (UA Chrome)   -> 200 trong ~300ms
+      script nay  (UA OGJobsBot) -> treo het 45s, ca 3 lan thu lai
 
-  KHONG lach bang cach gia User-Agent trinh duyet hay dung proxy vuot rao.
-  Script nay gui dung UA that cua bot, va chi lay du lieu cong khai.
+  Cung may, cung IP, chi khac DANH TINH CLIENT. Aramco chan theo User-Agent
+  (va/hoac dau vet TLS), khong theo IP. Nen doi IP khong giai quyet duoc gi.
+
+  Cach duy nhat con lai la gia lam trinh duyet, tuc vuot rao ma ho co y dung.
+  KHONG LAM. Xem ghi chu day du o nguon 'aramco' trong generic-html.scraper.ts.
+
+  VAY GIU SCRIPT NAY LAM GI
+  -------------------------
+  No van la ha tang dung duoc cho bat ky nguon nao that su can chay tu may ca
+  nhan (vd nguon chi cho truy cap trong mot dai IP quoc gia). Nhung phai co
+  BANG CHUNG cho tung nguon truoc khi tin, chu khong suy dien nhu lan Aramco.
 
   Ghi thang vao Neon, khong di qua API tren Render - nen khong phu thuoc
   viec API co dang ngu hay khong.
 
   CACH DUNG
   ---------
-      .\scripts\aramco-local.ps1              # chay nguon aramco
-      .\scripts\aramco-local.ps1 -Source slb  # chay nguon khac
-      .\scripts\aramco-local.ps1 -Rebuild     # ep build lai truoc khi chay
+      .\scripts\aramco-local.ps1 -Source <key>   # bat buoc chi ro nguon
+      .\scripts\aramco-local.ps1 -Source slb -Rebuild
 
   Muon chay tu dong hang ngay: xem scripts\setup-aramco-task.ps1
 #>
 
 [CmdletBinding()]
 param(
-  # Key cua nguon, dung ten trong scraper.registry.ts
-  [string]$Source = 'aramco',
+  # Key cua nguon, dung ten trong scraper.registry.ts.
+  #
+  # BAT BUOC, khong con mac dinh la 'aramco': de mac dinh do se moi nguoi dung
+  # chay mot nguon da biet chac la khong the chay duoc, roi ngoi cho 4 phut
+  # timeout de nhan ve 0 tin.
+  [Parameter(Mandatory = $true)]
+  [string]$Source,
 
   # Ep build lai ke ca khi da co dist. Dung sau khi sua code.
   [switch]$Rebuild
@@ -180,12 +189,37 @@ Invoke-Pnpm @('--version') 'pnpm --version'
   moi truong. Bien moi truong co san luon THANG dotenv (dotenv khong bao gio
   ghi de bien da ton tai), nen dat o day la du - khong can sua .env.
 #>
+<#
+  Doc chuoi ket noi tu mot file, nhan CA HAI dang:
+
+      DATABASE_URL=postgresql://...      <- dang .env chuan
+      postgresql://...                   <- chi co chuoi, khong co tien to
+
+  Vi sao nhan dang thu hai: tab Environment cua Render chi cho copy GIA TRI cua
+  bien, khong kem tien to. Dan vao roi quen them 'DATABASE_URL=' la chuyen binh
+  thuong - da xay ra that. Bat truoc thi do mot vong quay lai.
+
+  Cung bo ky tu BOM o dau file: Notepad luu UTF-8 co the chen BOM, khi do
+  '^\s*DATABASE_URL' khong khop vi truoc no con mot ky tu vo hinh.
+
+  Bo qua dong trong va dong bat dau bang '#' de con ghi chu duoc trong file.
+#>
 function Get-DbUrlFrom {
   param([string]$File)
   if (-not (Test-Path $File)) { return $null }
-  $line = Select-String -Path $File -Pattern '^\s*DATABASE_URL\s*=' | Select-Object -First 1
-  if (-not $line) { return $null }
-  return ($line.Line -split '=', 2)[1].Trim().Trim('"').Trim("'")
+
+  foreach ($raw in Get-Content -Path $File) {
+    $line = ($raw -replace "^\uFEFF", '').Trim()
+    if (-not $line -or $line.StartsWith('#')) { continue }
+
+    if ($line -match '^\s*DATABASE_URL\s*=\s*(.+)$') {
+      return $Matches[1].Trim().Trim('"').Trim("'")
+    }
+    if ($line -match '^postgres(ql)?://') {
+      return $line.Trim('"').Trim("'")
+    }
+  }
+  return $null
 }
 
 $ScraperEnv = Join-Path $Root '.env.scraper'
@@ -245,8 +279,7 @@ Roi mo lai $ScraperEnv va thay CA DONG, chi giu dung dinh dang:
 
 # Dat thang vao tien trinh con. Ghi de moi thu dotenv se doc sau do.
 $env:DATABASE_URL = $dbVal
-$dbHost = if ($dbVal -match '@([^:/?]+)') { $Matches[1] } else { '?' }
-Log "DATABASE_URL: lay tu $dbFrom, may chu = $dbHost"
+Log "DATABASE_URL: lay tu $dbFrom, may chu = $dbHostPreview"
 
 Push-Location $Root
 try {

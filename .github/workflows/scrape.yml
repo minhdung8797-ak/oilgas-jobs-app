@@ -81,13 +81,19 @@ jobs:
       #     01/09 07:03  GitHub Actions  1126472ms  found=0
       #     (đối chiếu)  halliburton       96787ms  found=25
       #
-      # Ba lần treo gần bằng nhau tới từng chục giây rồi trả rỗng — dải IP của
-      # Actions bị chặn y như Render. Giả thuyết "đổi hạ tầng thì vào được" sai.
-      # Bật lại chỉ tốn 19 trong 30 phút ngân sách mỗi lần chạy để lấy về số 0,
-      # và có nguy cơ làm cả job hết giờ.
+      #     03/09  máy cá nhân, IP dân dụng  45s×3 timeout/từ khoá, found=0
       #
-      # Bài học chung: mở được portal bằng trình duyệt ở nhà KHÔNG chứng minh
-      # scraper trên máy chủ vào được — đó là hai dải IP khác nhau.
+      # Ban đầu tôi kết luận "Actions bị chặn IP y như Render". SAI. Lần chạy
+      # 03/09 từ máy cá nhân mới là thí nghiệm sạch — cùng máy, cùng IP:
+      # trình duyệt vào được trong 300ms, còn scraper (User-Agent 'OGJobsBot')
+      # treo hết 45 giây. Aramco chặn theo DANH TÍNH CLIENT, không theo IP.
+      #
+      # Nên đổi hạ tầng hay proxy dân dụng đều vô ích. Cách duy nhất còn lại là
+      # giả làm trình duyệt — vượt rào họ cố ý dựng, không làm.
+      #
+      # Bài học chung: mở được portal bằng trình duyệt KHÔNG chứng minh scraper
+      # vào được, và `fetch()` trong trình duyệt bỏ qua header User-Agent nên
+      # đừng dùng nó để thử hành vi của HTTP client.
       # SCRAPER_FORCE_SOURCES: 'aramco'
 
     steps:

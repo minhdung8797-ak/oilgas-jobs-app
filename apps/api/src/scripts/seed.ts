@@ -79,6 +79,7 @@ const COMPANIES: {
   { name: 'PVD Training', type: 'SERVICE', website: 'https://pvdtraining.com.vn', careersUrl: 'https://job.pvdtraining.com.vn', hq: 'VN' },
   // Hãng làm ECHELON — bộ mô phỏng mỏ chạy trên GPU.
   { name: 'Stone Ridge Technology', type: 'CONSULTANCY', website: 'https://stoneridgetechnology.com', careersUrl: 'https://stoneridgetechnology.com/company/careers/', hq: 'US' },
+  { name: 'UCC Holding', type: 'EPC', website: 'https://uccholding.com', careersUrl: 'https://careers.powerholding-intl.com/go/UCC-Holding/9828057/', hq: 'QA' },
   { name: 'Wood', type: 'EPC', website: 'https://www.woodplc.com', hq: 'GB' },
   { name: 'Petrofac', type: 'EPC', website: 'https://www.petrofac.com', hq: 'GB' },
   { name: 'TechnipFMC', type: 'EPC', website: 'https://www.technipfmc.com', hq: 'GB' },

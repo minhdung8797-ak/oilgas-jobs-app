@@ -299,31 +299,47 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
       posted: '.jobDate, span.jobDate',
       detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
     },
-    // ⚠️ TẮT. Lịch sử đầy đủ, vì đây là ca dễ chẩn đoán sai nhất trong cả app:
+    // ⚠️ TẮT VĨNH VIỄN. Đây là ca chẩn đoán sai nhiều lần nhất trong cả app,
+    // nên ghi lại đủ cả những kết luận SAI để không ai lặp lại.
     //
-    // 2026-08-30: chạy 939 giây -> found=0. Kết luận "site chặn bot". Tắt.
-    // 2026-08-31: mở careers.aramco.com bằng trình duyệt -> 200 trong <500ms,
-    //   "reservoir" ra 6 tin thật. Kết luận "chỉ bị tiết lưu tạm thời". Bật lại.
-    // 2026-08-31 (sau đó): chạy lại từ Render -> 1131 giây, LẠI found=0.
+    // 2026-08-30  chạy từ Render          939s  -> found=0
+    // 2026-08-31  chạy từ Render         1131s  -> found=0
+    // 2026-09-01  chạy từ GitHub Actions 1126s  -> found=0
+    // 2026-09-03  chạy TỪ MÁY CÁ NHÂN     45s×3 timeout mỗi từ khoá -> found=0
     //
-    // Kết luận đúng: Aramco chặn theo ĐỊA CHỈ IP TRUNG TÂM DỮ LIỆU. Trình duyệt
-    // của tôi đi từ IP dân dụng nên vào được; scraper đi từ IP Render (Oregon)
-    // nên bị chặn. Hai phép thử cho hai kết quả trái ngược vì chúng KHÔNG cùng
-    // điều kiện — đó là chỗ tôi sai.
+    // ── Kết luận SAI thứ nhất: "chỉ bị tiết lưu tạm thời" ──
+    // Dựa trên việc mở careers.aramco.com bằng trình duyệt thấy 200 trong 300ms.
     //
-    // Con số 1131 giây tự nó là bằng chứng: 6 từ khoá × 45 giây timeout × 4 lần
-    // thử lại ≈ 1080 giây. Mọi request đều treo tới hết giờ chứ không bị từ chối
-    // ngay — đúng đặc trưng của tường lửa chống bot, không phải lỗi cấu hình.
+    // ── Kết luận SAI thứ hai: "chặn theo dải IP trung tâm dữ liệu" ──
+    // Dựa trên phép thử tưởng là đã gửi User-Agent của bot từ trình duyệt mà vẫn
+    // vào được. Phép thử đó KHÔNG HỢP LỆ: `fetch()` trong trình duyệt âm thầm bỏ
+    // qua header User-Agent do đó là "forbidden header name", nên request vẫn đi
+    // với UA của Chrome. Cả giả thuyết IP được xây trên một kiểm chứng chưa từng
+    // thực sự xảy ra.
     //
-    // BÀI HỌC CHUNG: mở được bằng trình duyệt KHÔNG chứng minh scraper vào được.
-    // Phải đối chiếu bằng lần chạy thật từ Render, hoặc ít nhất coi kết quả từ
-    // trình duyệt là chưa đủ. Áp dụng cho mọi nguồn mới.
+    // ── Kết luận ĐÚNG ──
+    // Lần chạy 2026-09-03 là thí nghiệm sạch: CÙNG máy, CÙNG IP dân dụng.
+    //   trình duyệt (UA Chrome)     -> 200 trong ~300ms
+    //   scraper    (UA OGJobsBot)   -> treo hết 45s, cả 3 lần thử lại
+    // Chỉ khác nhau ở DANH TÍNH CLIENT, không phải vị trí mạng. Aramco chặn theo
+    // User-Agent (và/hoặc dấu vết TLS), không theo IP.
     //
-    // Muốn bật lại: cần proxy có IP dân dụng — nằm ngoài phạm vi bản $0/tháng.
-    // KHÔNG lách bằng cách giả User-Agent trình duyệt: đó là vượt rào chống bot.
-    // Selector bên dưới đã xác minh đúng, giữ nguyên để dùng lại sau này.
+    // Nên đổi IP — proxy dân dụng, chạy từ máy nhà — đều VÔ ÍCH. Cách duy nhất
+    // còn lại là giả làm trình duyệt, tức vượt rào mà họ cố ý dựng. KHÔNG LÀM.
+    // Aramco đã nói rõ ý muốn của họ; tôn trọng nó là lựa chọn đúng, không phải
+    // hạn chế kỹ thuật cần khắc phục.
+    //
+    // BÀI HỌC CHUNG, đắt hơn cả nguồn này:
+    //  1. Mở được bằng trình duyệt KHÔNG chứng minh scraper vào được.
+    //  2. Trình duyệt bỏ qua một số header (User-Agent, Referer, Host…), nên
+    //     đừng dùng `fetch()` trong trình duyệt để thử hành vi của HTTP client.
+    //  3. Khi hai phép thử cho kết quả trái ngược, hãy tìm xem chúng khác nhau ở
+    //     BAO NHIÊU biến — tôi đã cố định sai biến và tự tin vào kết luận sai.
+    //
+    // Selector giữ nguyên: chúng đã được xác minh đúng trên HTML thật, và nếu
+    // sau này Aramco mở cổng cho bot thì chỉ cần bật `enabled` lên.
     enabled: false,
-    notes: 'SuccessFactors RMK · selector đúng, nhưng Aramco chặn IP trung tâm dữ liệu (đo 2 lần: 939s và 1131s, đều found=0)',
+    notes: 'SuccessFactors RMK · selector đúng · Aramco chặn theo User-Agent của bot, đổi IP không giải quyết được',
   },
   {
     key: 'totalenergies',
@@ -831,5 +847,47 @@ export const GENERIC_SOURCES: GenericSourceDef[] = [
     // Vẫn bật: ECHELON là bộ mô phỏng mỏ chạy GPU, họ có tuyển vai trò kỹ thuật
     // mỏ theo đợt, và nguồn chỉ tốn 1 request/ngày.
     notes: 'HTML tĩnh · 2 tin lập trình từ 2021 · hiện không có tin nào hiển thị',
+  },
+  {
+    key: 'uccholding',
+    label: 'UCC Holding Careers',
+    company: 'UCC Holding',
+    companyType: CompanyType.EPC,
+    baseUrl: 'https://careers.powerholding-intl.com',
+    // QUAN TRỌNG — dùng đường /go/UCC-Holding/ chứ KHÔNG dùng /search/ chung.
+    //
+    // careers.powerholding-intl.com là cổng dùng chung của cả tập đoàn Power
+    // International Holding: UCC, Estithmar, Baladna, Aura, Assets, Bridge…
+    // Quét /search/ rồi gắn nhãn 'UCC Holding' sẽ ghi sai nhà tuyển dụng cho
+    // phần lớn tin — đúng cái lỗi đã khiến ta loại bảng chung của ABL Group.
+    // Nhánh /go/UCC-Holding/9828057/ chỉ chứa tin của UCC nên nhãn là đúng.
+    searchUrlTemplate: 'https://careers.powerholding-intl.com/go/UCC-Holding/9828057/?q={keyword}',
+    keywords: ['reservoir', 'petroleum', 'production engineer', 'geologist', 'geophysicist', 'subsurface'],
+    firstPage: 0,
+    maxPages: 1,
+    selectors: {
+      card: 'tr.data-row, li.job-tile',
+      title: 'a.jobTitle-link',
+      location: 'span.jobLocation, [id$="-section-location-value"]',
+      posted: 'span.jobDate, [id$="-section-date-value"]',
+      detailBody: '.job, .jobDescriptionSection, [itemprop="description"]',
+    },
+    enabled: true,
+    // Xác minh 2026-09-03: nhánh UCC có 280 tin, phân trang 25 tin/trang, HTML
+    // dựng sẵn ở máy chủ, mỗi tin có URL riêng.
+    //
+    // Hiện KHÔNG tin nào thuộc 4 nhóm ngành: UCC là nhà thầu xây dựng và điện,
+    // không phải nhà điều hành thượng nguồn. Toàn bộ là Site Engineer, HSE
+    // Officer, Quantity Surveyor, Architect, Procurement.
+    //
+    // Tìm kiếm theo từ khoá hoạt động ĐÚNG: q=petroleum và q=subsurface đều trả
+    // 0 kết quả thay vì trả về tất cả. Điều này quan trọng hơn vẻ ngoài của nó —
+    // nó có nghĩa nguồn sẽ im lặng cho tới khi UCC thật sự đăng tin đúng ngành,
+    // chứ không đổ 280 tin xây dựng vào hệ thống.
+    //
+    // Riêng 'subsurface' đáng để mắt: trong xây dựng nó nghĩa là công trình
+    // ngầm, không phải địa chất mỏ. Hôm nay trả 0 nên chưa thành vấn đề, nhưng
+    // nếu sau này nguồn này bắt đầu ra tin thì phải kiểm lại nhóm ngành.
+    notes: 'SuccessFactors · nhánh riêng của UCC trong cổng chung PIH · 280 tin, chưa tin nào thuộc nhóm mục tiêu',
   },
 ];
