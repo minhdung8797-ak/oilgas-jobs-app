@@ -13,7 +13,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { Discipline, EmploymentType, Seniority, WorkMode } from '@og/shared';
+import { CompanyCategory, Discipline, EmploymentType, Seniority, WorkMode } from '@og/shared';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 
 /** `?discipline=RESERVOIR,PRODUCTION` hoặc `?discipline=RESERVOIR&discipline=PRODUCTION` */
@@ -81,6 +81,18 @@ export class QueryJobsDto extends PaginationDto {
   @ArrayMaxSize(20)
   @IsString({ each: true })
   region?: string[];
+
+  /**
+   * Lọc theo nhóm nhà tuyển dụng: OPERATOR (bên sở hữu mỏ) hay SERVICE_PROVIDER
+   * (bên làm dịch vụ cho mỏ). Gộp từ `company.type`, xem CompanyCategory.
+   */
+  @ApiPropertyOptional({ enum: CompanyCategory, isArray: true, example: ['OPERATOR'] })
+  @IsOptional()
+  @Transform(toArray)
+  @IsArray()
+  @ArrayMaxSize(5)
+  @IsEnum(CompanyCategory, { each: true })
+  companyCategory?: CompanyCategory[];
 
   @ApiPropertyOptional({ description: 'Slug công ty', example: ['slb', 'adnoc'] })
   @IsOptional()

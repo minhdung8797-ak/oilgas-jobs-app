@@ -4,6 +4,7 @@
   "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "_comment_no_exports": "CO Y khong khai 'exports' map. apps/api dung moduleResolution 'node' (kieu cu) nen khong doc duoc exports map, con khai map lai chan duong dan sau './dist/node' o runtime cua Node. Nen nhanh chi-Node duoc import thang qua '@og/shared/dist/node'. Xem packages/shared/src/node.ts.",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",

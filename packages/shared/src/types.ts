@@ -112,6 +112,8 @@ export interface JobFacets {
   workModes: FacetBucket[];
   seniorities: FacetBucket[];
   sources: FacetBucket[];
+  /** Operator vs Service Provider — tầng gộp trên `companies`. */
+  companyCategories: FacetBucket[];
   /**
    * Số job khi BỎ bộ lọc quốc gia — dùng cho dòng "Tất cả quốc gia".
    * Không thể lấy bằng cách cộng `countries` lại: những job chưa xác định được

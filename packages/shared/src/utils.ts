@@ -1,5 +1,3 @@
-import { createHash } from 'crypto';
-
 /**
  * Chuẩn hóa text để matching regex: bỏ HTML, BỎ DẤU, lowercase, gộp khoảng trắng.
  *
@@ -42,12 +40,9 @@ export function slugify(input: string): string {
     .slice(0, 120);
 }
 
-/** Hash nội dung để phát hiện job đã thay đổi -> upsert thông minh, tránh ghi thừa. */
-export function contentHash(parts: (string | null | undefined)[]): string {
-  return createHash('sha256')
-    .update(parts.map((p) => (p ?? '').trim()).join('|'))
-    .digest('hex');
-}
+// `contentHash` đã chuyển sang './node' vì nó cần `crypto` của Node, mà tệp này
+// được barrel export ra và frontend chạy trên Edge runtime. Xem ghi chú đầy đủ
+// trong packages/shared/src/node.ts.
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

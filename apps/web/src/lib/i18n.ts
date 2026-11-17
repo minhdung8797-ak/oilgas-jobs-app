@@ -69,6 +69,7 @@ const DICT: Dict = {
   postedWithin: { vi: 'Thời gian đăng', en: 'Posted within' },
   country: { vi: 'Quốc gia', en: 'Country' },
   allCountries: { vi: 'Tất cả quốc gia', en: 'All countries' },
+  companyCategory: { vi: 'Loại nhà tuyển dụng', en: 'Employer type' },
   company: { vi: 'Công ty', en: 'Company' },
   workMode: { vi: 'Hình thức làm việc', en: 'Work mode' },
   employmentType: { vi: 'Loại hợp đồng', en: 'Employment type' },
@@ -204,6 +205,32 @@ export const COMPANY_TYPE_I18N: Record<string, { vi: string; en: string }> = {
   CONSULTANCY: { vi: 'Tư vấn', en: 'Consultancies' },
   JOB_BOARD: { vi: 'Job board', en: 'Job boards' },
   OTHER: { vi: 'Khác', en: 'Other' },
+};
+
+/**
+ * Hai nhóm nhà tuyển dụng lớn.
+ *
+ * Nhãn tiếng Việt giữ cả thuật ngữ tiếng Anh trong ngoặc, vì dân trong ngành
+ * dầu khí ở Việt Nam gọi thẳng là "operator" và "service" — dịch thuần Việt
+ * ("nhà điều hành") đúng nghĩa nhưng người đọc phải dịch ngược lại trong đầu.
+ */
+export const COMPANY_CATEGORY_I18N: Record<string, { vi: string; en: string }> = {
+  OPERATOR: { vi: 'Nhà điều hành (Operator)', en: 'Operator' },
+  SERVICE_PROVIDER: { vi: 'Nhà thầu dịch vụ (Service)', en: 'Service provider' },
+  OTHER: { vi: 'Khác', en: 'Other' },
+};
+
+/** Giải thích ngắn dưới mỗi nhóm, để người mới vào ngành chọn đúng. */
+export const COMPANY_CATEGORY_HINT_I18N: Record<string, { vi: string; en: string }> = {
+  OPERATOR: {
+    vi: 'Sở hữu và vận hành mỏ',
+    en: 'Owns and operates the fields',
+  },
+  SERVICE_PROVIDER: {
+    vi: 'Làm dịch vụ, thiết bị, thi công cho mỏ',
+    en: 'Services, equipment and construction for operators',
+  },
+  OTHER: { vi: 'Chưa phân loại', en: 'Unclassified' },
 };
 
 /**

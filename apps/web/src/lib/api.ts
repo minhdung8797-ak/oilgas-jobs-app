@@ -24,6 +24,8 @@ export interface JobFilters {
   excludeCountry?: string[];
   region?: string[];
   company?: string[];
+  /** 'OPERATOR' | 'SERVICE_PROVIDER' — gộp từ loại công ty. */
+  companyCategory?: string[];
   source?: string[];
   employmentType?: string[];
   workMode?: string[];
@@ -74,6 +76,7 @@ export function parseFilters(searchParams: Record<string, string | string[] | un
     excludeCountry: arr(searchParams.excludeCountry),
     region: arr(searchParams.region),
     company: arr(searchParams.company),
+    companyCategory: arr(searchParams.companyCategory),
     source: arr(searchParams.source),
     employmentType: arr(searchParams.employmentType),
     workMode: arr(searchParams.workMode),
@@ -178,6 +181,7 @@ const EMPTY_FACETS: JobFacets = {
   workModes: [],
   seniorities: [],
   sources: [],
+  companyCategories: [],
   countriesTotal: 0,
   total: 0,
 };

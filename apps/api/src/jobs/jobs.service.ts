@@ -1,8 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
+  COMPANY_CATEGORY_TYPES,
+  CompanyCategory,
   DISCIPLINE_LABELS,
   Discipline,
+  companyCategoryOf,
   JobDto,
   JobFacets,
   NormalizedJob,
@@ -23,6 +26,7 @@ type FacetKey =
   | 'discipline'
   | 'country'
   | 'company'
+  | 'companyCategory'
   | 'source'
   | 'employmentType'
   | 'workMode'
@@ -203,8 +207,17 @@ export class JobsService {
   async facets(query: QueryJobsDto): Promise<JobFacets> {
     const where = this.buildWhere(query);
 
-    const [disciplines, countries, companies, employmentTypes, workModes, seniorities, sources, total] =
-      await Promise.all([
+    const [
+      disciplines,
+      countries,
+      companies,
+      employmentTypes,
+      workModes,
+      seniorities,
+      sources,
+      total,
+      companyCategoryRows,
+    ] = await Promise.all([
         this.prisma.job.groupBy({
           by: ['discipline'],
           where: this.buildWhere(query, 'discipline'),
@@ -241,29 +254,69 @@ export class JobsService {
           _count: { _all: true },
         }),
         this.prisma.job.count({ where }),
+        // Nhóm nhà tuyển dụng: gom theo companyId với bộ lọc BỎ chính nhóm này,
+        // rồi quy từng công ty về nhóm ở bước sau. Phải là lượt gom RIÊNG, không
+        // dùng chung với `companies` ở trên, vì hai facet bỏ qua hai bộ lọc khác
+        // nhau — dùng chung thì chọn "Operator" sẽ làm chính nó biến mất.
+        this.prisma.job.groupBy({
+          by: ['companyId'],
+          where: this.buildWhere(query, 'companyCategory'),
+          _count: { _all: true },
+        }),
       ]);
 
     const countryIds = countries.map((c) => c.countryId).filter((v): v is number => v !== null);
-    const companyIds = companies.map((c) => c.companyId).filter((v): v is string => v !== null);
+    const companyIds = [
+      ...new Set(
+        [...companies, ...companyCategoryRows]
+          .map((c) => c.companyId)
+          .filter((v): v is string => v !== null),
+      ),
+    ];
 
     const [countryRows, companyRows] = await Promise.all([
       this.prisma.country.findMany({ where: { id: { in: countryIds } }, select: { id: true, code: true, name: true } }),
-      this.prisma.company.findMany({ where: { id: { in: companyIds } }, select: { id: true, slug: true, name: true } }),
+      this.prisma.company.findMany({
+        where: { id: { in: companyIds } },
+        select: { id: true, slug: true, name: true, type: true },
+      }),
     ]);
     const countryMap = new Map<number, { id: number; code: string; name: string }>(
       countryRows.map((c) => [c.id, c]),
     );
-    const companyMap = new Map<string, { id: string; slug: string; name: string }>(
+    const companyMap = new Map<string, { id: string; slug: string; name: string; type: string }>(
       companyRows.map((c) => [c.id, c]),
     );
 
     const sortDesc = (a: { count: number }, b: { count: number }) => b.count - a.count;
+
+    // Quy từng công ty về nhóm rồi cộng dồn. Job chưa gắn công ty (companyId =
+    // null) bị bỏ qua chứ không dồn vào OTHER: nói "có N job thuộc nhóm khác"
+    // trong khi thực ra là chưa biết công ty nào thì sai lệch hơn là im lặng.
+    const categoryCounts = new Map<CompanyCategory, number>();
+    for (const row of companyCategoryRows) {
+      if (!row.companyId) continue;
+      const type = companyMap.get(row.companyId)?.type;
+      const category = companyCategoryOf(type);
+      categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + row._count._all);
+    }
 
     return {
       total,
       // Cộng CẢ bucket countryId = null: job chưa xác định được quốc gia vẫn
       // hiện ở trạng thái "tất cả quốc gia", nên phải được đếm ở đây.
       countriesTotal: countries.reduce((s, c) => s + c._count._all, 0),
+      // Giữ thứ tự cố định Operator -> Service Provider -> Other thay vì sắp
+      // theo số lượng: đây là hai lựa chọn nghề nghiệp đối xứng, để chúng nhảy
+      // chỗ mỗi lần số liệu đổi sẽ khiến người dùng phải đọc lại nhãn mỗi lần.
+      // Nhóm có 0 job vẫn giữ lại để người dùng thấy lựa chọn đó tồn tại.
+      companyCategories: [
+        CompanyCategory.OPERATOR,
+        CompanyCategory.SERVICE_PROVIDER,
+        CompanyCategory.OTHER,
+      ]
+        .map((c) => ({ value: c, label: c, count: categoryCounts.get(c) ?? 0 }))
+        .filter((b) => b.value !== CompanyCategory.OTHER || b.count > 0),
       disciplines: disciplines
         .map((d) => ({
           value: d.discipline,
@@ -490,6 +543,14 @@ export class JobsService {
     if (query.region?.length) and.push({ country: { region: { in: query.region } } });
     if (query.company?.length && omit !== 'company')
       and.push({ company: { slug: { in: query.company } } });
+
+    // Nhóm nhà tuyển dụng (Operator / Service Provider) không phải cột trong
+    // database — nó suy ra từ `company.type`. Nên lọc bằng cách mở nhóm ra thành
+    // danh sách loại công ty tương ứng rồi lọc trên cột thật.
+    if (query.companyCategory?.length && omit !== 'companyCategory') {
+      const types = query.companyCategory.flatMap((c) => COMPANY_CATEGORY_TYPES[c] ?? []);
+      if (types.length > 0) and.push({ company: { type: { in: types as never[] } } });
+    }
     if (query.source?.length && omit !== 'source') and.push({ source: { in: query.source } });
     if (query.employmentType?.length && omit !== 'employmentType')
       and.push({ employmentType: { in: query.employmentType as never[] } });

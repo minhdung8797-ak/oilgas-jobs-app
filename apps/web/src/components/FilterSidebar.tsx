@@ -5,6 +5,8 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { JobFacets } from '@og/shared';
 import { DISCIPLINE_STYLE, cn } from '@/lib/utils';
 import {
+  COMPANY_CATEGORY_HINT_I18N,
+  COMPANY_CATEGORY_I18N,
   DISCIPLINE_LABEL_I18N,
   EMPLOYMENT_I18N,
   SENIORITY_I18N,
@@ -60,6 +62,7 @@ export function FilterSidebar({ facets, lang }: Props) {
       country: get('country'),
       excludeCountry: get('excludeCountry'),
       company: get('company'),
+      companyCategory: get('companyCategory'),
       employmentType: get('employmentType'),
       workMode: get('workMode'),
       seniority: get('seniority'),
@@ -168,6 +171,7 @@ export function FilterSidebar({ facets, lang }: Props) {
     current.country.length +
     current.excludeCountry.length +
     current.company.length +
+    current.companyCategory.length +
     current.employmentType.length +
     current.workMode.length +
     current.seniority.length +
@@ -262,6 +266,27 @@ export function FilterSidebar({ facets, lang }: Props) {
             />
           ))}
         </ScrollList>
+      </FilterGroup>
+
+      {/* ── Loại nhà tuyển dụng ──
+          Đặt NGAY TRÊN danh sách công ty vì đây là lựa chọn thô hơn: người tìm
+          việc thường quyết "operator hay service" trước, rồi mới tới công ty cụ
+          thể. Kèm một dòng giải thích vì người mới vào ngành hay nhầm hai nhóm. */}
+      <FilterGroup title={tr('companyCategory')}>
+        {/* `?? []` là bắt buộc, không phải phòng xa thừa: web (Vercel) và API
+            (Render) deploy độc lập, nên có vài phút web đã có code mới còn API
+            vẫn trả response cũ thiếu trường này. Thiếu chốt thì `.map()` ném
+            lỗi và làm trắng cả trang danh sách. */}
+        {(facets.companyCategories ?? []).map((c) => (
+          <CheckRow
+            key={c.value}
+            label={COMPANY_CATEGORY_I18N[c.value]?.[lang] ?? c.label}
+            hint={COMPANY_CATEGORY_HINT_I18N[c.value]?.[lang]}
+            count={c.count}
+            checked={current.companyCategory.includes(c.value)}
+            onChange={() => toggle('companyCategory', c.value)}
+          />
+        ))}
       </FilterGroup>
 
       {/* ── Công ty ── */}
@@ -390,12 +415,15 @@ function ScrollList({ children }: { children: React.ReactNode }) {
 
 function CheckRow({
   label,
+  hint,
   count,
   checked,
   onChange,
   disabled = false,
 }: {
   label: string;
+  /** Dòng giải thích nhỏ dưới nhãn. Chỉ dùng khi nhãn dễ bị hiểu nhầm. */
+  hint?: string;
   count: number;
   checked: boolean;
   onChange: () => void;
@@ -404,21 +432,32 @@ function CheckRow({
   return (
     <label
       className={cn(
-        'flex items-center justify-between gap-2 rounded px-1 py-0.5 text-sm',
+        'flex justify-between gap-2 rounded px-1 py-0.5 text-sm',
+        // Có dòng giải thích thì căn theo MÉP TRÊN để ô tick thẳng hàng với
+        // nhãn; căn giữa sẽ đẩy ô tick xuống ngang dòng giải thích.
+        hint ? 'items-start' : 'items-center',
         disabled
           ? 'cursor-default opacity-70'
           : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800',
       )}
     >
-      <span className="flex min-w-0 items-center gap-2">
+      <span className={cn('flex min-w-0 gap-2', hint ? 'items-start' : 'items-center')}>
         <input
           type="checkbox"
           checked={checked}
           onChange={onChange}
           disabled={disabled}
-          className="h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+          className={cn(
+            'h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500',
+            hint && 'mt-0.5',
+          )}
         />
-        <span className="truncate text-slate-700 dark:text-slate-300">{label}</span>
+        <span className="min-w-0">
+          <span className="block truncate text-slate-700 dark:text-slate-300">{label}</span>
+          {hint && (
+            <span className="block text-xs leading-snug text-slate-400">{hint}</span>
+          )}
+        </span>
       </span>
       <span className="shrink-0 text-xs tabular-nums text-slate-400">{count}</span>
     </label>

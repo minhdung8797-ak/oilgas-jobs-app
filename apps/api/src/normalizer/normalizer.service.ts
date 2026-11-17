@@ -10,13 +10,15 @@ import {
   Seniority,
   SKILL_PATTERNS,
   WorkMode,
-  contentHash,
   normalizeText,
   parseFlexibleDate,
   slugify,
   truncate,
   uniq,
 } from '@og/shared';
+// Nhánh riêng cho phần cần crypto của Node — barrel '@og/shared' phải giữ an
+// toàn với Edge runtime của frontend. Xem packages/shared/src/node.ts.
+import { contentHash } from '@og/shared/dist/node';
 import { FxService } from './fx.service';
 import { ClassifierService } from '../classifier/classifier.service';
 

@@ -65,6 +65,47 @@ export enum CompanyType {
   OTHER = 'OTHER',
 }
 
+/**
+ * Hai nhóm nhà tuyển dụng mà người trong ngành luôn phân biệt khi chọn việc.
+ *
+ * Đây là tầng GỘP trên `CompanyType`, không thay thế nó: `CompanyType` trả lời
+ * "công ty này là loại gì" (IOC, NOC, EPC…), còn `CompanyCategory` trả lời câu
+ * hỏi thực tế hơn khi tìm việc — "mình sẽ làm cho bên sở hữu mỏ hay bên đi làm
+ * dịch vụ cho mỏ?". Hai con đường sự nghiệp khác hẳn nhau về công việc hàng
+ * ngày, mức lương và lịch đi hiện trường, nên đáng có bộ lọc riêng.
+ *
+ * Cố ý KHÔNG lưu thành cột trong database: nó suy ra được hoàn toàn từ
+ * `CompanyType`. Thêm cột nghĩa là có hai nguồn sự thật và sẽ lệch nhau.
+ */
+export enum CompanyCategory {
+  /** Sở hữu và vận hành mỏ: công ty dầu khí quốc tế và quốc gia. */
+  OPERATOR = 'OPERATOR',
+  /** Cung cấp dịch vụ, thiết bị, thi công, tư vấn cho nhà điều hành. */
+  SERVICE_PROVIDER = 'SERVICE_PROVIDER',
+  /** Chưa xếp được vào đâu — job board, hoặc công ty chưa gắn loại. */
+  OTHER = 'OTHER',
+}
+
+/** Loại công ty thuộc về nhóm nào. Nguồn sự thật duy nhất cho phép gộp này. */
+export const COMPANY_CATEGORY_TYPES: Record<CompanyCategory, CompanyType[]> = {
+  [CompanyCategory.OPERATOR]: [CompanyType.IOC, CompanyType.NOC],
+  [CompanyCategory.SERVICE_PROVIDER]: [
+    CompanyType.SERVICE,
+    CompanyType.EPC,
+    CompanyType.CONSULTANCY,
+  ],
+  [CompanyCategory.OTHER]: [CompanyType.JOB_BOARD, CompanyType.OTHER],
+};
+
+/** Suy ngược: một loại công ty thuộc nhóm nào. */
+export function companyCategoryOf(type: CompanyType | string | null | undefined): CompanyCategory {
+  if (!type) return CompanyCategory.OTHER;
+  for (const [category, types] of Object.entries(COMPANY_CATEGORY_TYPES)) {
+    if ((types as string[]).includes(type)) return category as CompanyCategory;
+  }
+  return CompanyCategory.OTHER;
+}
+
 export enum SalaryPeriod {
   HOUR = 'HOUR',
   DAY = 'DAY',
