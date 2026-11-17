@@ -97,13 +97,68 @@ export const COMPANY_CATEGORY_TYPES: Record<CompanyCategory, CompanyType[]> = {
   [CompanyCategory.OTHER]: [CompanyType.JOB_BOARD, CompanyType.OTHER],
 };
 
-/** Suy ngược: một loại công ty thuộc nhóm nào. */
-export function companyCategoryOf(type: CompanyType | string | null | undefined): CompanyCategory {
+/**
+ * Ngoại lệ: công ty mà loại hình KHÔNG quyết định đúng nhóm, tra theo slug.
+ *
+ * Vì sao cần: vài tập đoàn vừa thi công vừa sở hữu và vận hành tài sản năng
+ * lượng, nên `type` đúng mà nhóm lại sai. UCC Holding là ca đầu tiên — họ là
+ * nhà thầu EPC (nên `type: EPC` là chính xác, và trang Công ty xếp họ vào mục
+ * "EPC / Xây lắp" cũng đúng), nhưng mảng nhượng quyền thì tự sở hữu và vận hành
+ * nhà máy, tức đứng ở phía Operator khi người tìm việc chọn hướng đi.
+ *
+ * Ghi đè ở đây thay vì sửa `type` thành IOC/NOC: `type` là dữ liệu dùng chung
+ * cho cả trang Công ty, đổi nó sẽ khiến UCC hiện dưới tiêu đề "Công ty dầu khí
+ * quốc tế" — sai hiển nhiên ngay trên giao diện.
+ *
+ * Cũng không thêm cột vào database: đây là phán đoán biên tập về vài công ty cụ
+ * thể, sửa trong code thì thấy được qua lịch sử git và không cần migration.
+ */
+export const COMPANY_CATEGORY_OVERRIDES: Record<string, CompanyCategory> = {
+  'ucc-holding': CompanyCategory.OPERATOR,
+};
+
+/**
+ * Nhóm của một công ty. Ưu tiên ngoại lệ theo slug, không có thì suy từ loại.
+ *
+ * `slug` là tuỳ chọn để chỗ nào chỉ có `type` vẫn gọi được, nhưng truyền vào
+ * bất cứ khi nào có — thiếu nó thì ngoại lệ bị bỏ qua lặng lẽ.
+ */
+export function companyCategoryOf(
+  type: CompanyType | string | null | undefined,
+  slug?: string | null,
+): CompanyCategory {
+  if (slug && COMPANY_CATEGORY_OVERRIDES[slug]) return COMPANY_CATEGORY_OVERRIDES[slug];
   if (!type) return CompanyCategory.OTHER;
   for (const [category, types] of Object.entries(COMPANY_CATEGORY_TYPES)) {
     if ((types as string[]).includes(type)) return category as CompanyCategory;
   }
   return CompanyCategory.OTHER;
+}
+
+/**
+ * Dịch danh sách nhóm được chọn thành điều kiện lọc trên bảng Company.
+ *
+ * Trả về ba mảnh thay vì một câu truy vấn, để phía API tự ghép theo cú pháp
+ * Prisma mà vẫn giữ toàn bộ phần suy luận ở đây — nơi duy nhất biết về ngoại lệ.
+ *
+ *   types        : các `company.type` thuộc nhóm đã chọn
+ *   excludeSlugs : MỌI công ty có ngoại lệ — loại khỏi nhánh lọc theo type, vì
+ *                  với chúng thì type không còn quyết định nhóm nữa
+ *   includeSlugs : công ty có ngoại lệ trỏ ĐÚNG vào nhóm đang chọn
+ */
+export function companyCategoryFilter(categories: CompanyCategory[]): {
+  types: CompanyType[];
+  includeSlugs: string[];
+  excludeSlugs: string[];
+} {
+  const selected = new Set(categories);
+  return {
+    types: categories.flatMap((c) => COMPANY_CATEGORY_TYPES[c] ?? []),
+    excludeSlugs: Object.keys(COMPANY_CATEGORY_OVERRIDES),
+    includeSlugs: Object.entries(COMPANY_CATEGORY_OVERRIDES)
+      .filter(([, category]) => selected.has(category))
+      .map(([slug]) => slug),
+  };
 }
 
 export enum SalaryPeriod {

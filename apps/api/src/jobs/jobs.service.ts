@@ -1,10 +1,10 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
-  COMPANY_CATEGORY_TYPES,
   CompanyCategory,
   DISCIPLINE_LABELS,
   Discipline,
+  companyCategoryFilter,
   companyCategoryOf,
   JobDto,
   JobFacets,
@@ -296,8 +296,8 @@ export class JobsService {
     const categoryCounts = new Map<CompanyCategory, number>();
     for (const row of companyCategoryRows) {
       if (!row.companyId) continue;
-      const type = companyMap.get(row.companyId)?.type;
-      const category = companyCategoryOf(type);
+      const company = companyMap.get(row.companyId);
+      const category = companyCategoryOf(company?.type, company?.slug);
       categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + row._count._all);
     }
 
@@ -548,8 +548,25 @@ export class JobsService {
     // database — nó suy ra từ `company.type`. Nên lọc bằng cách mở nhóm ra thành
     // danh sách loại công ty tương ứng rồi lọc trên cột thật.
     if (query.companyCategory?.length && omit !== 'companyCategory') {
-      const types = query.companyCategory.flatMap((c) => COMPANY_CATEGORY_TYPES[c] ?? []);
-      if (types.length > 0) and.push({ company: { type: { in: types as never[] } } });
+      const { types, includeSlugs, excludeSlugs } = companyCategoryFilter(query.companyCategory);
+      const or: Prisma.JobWhereInput[] = [];
+
+      // Nhánh 1: lọc theo loại công ty, nhưng TRỪ những công ty có ngoại lệ —
+      // với chúng thì loại không còn quyết định nhóm.
+      if (types.length > 0) {
+        or.push({
+          company: {
+            type: { in: types as never[] },
+            ...(excludeSlugs.length ? { slug: { notIn: excludeSlugs } } : {}),
+          },
+        });
+      }
+      // Nhánh 2: công ty được ghi đè vào đúng nhóm đang chọn.
+      if (includeSlugs.length > 0) or.push({ company: { slug: { in: includeSlugs } } });
+
+      // `or` rỗng nghĩa là nhóm đã chọn không khớp gì — đẩy điều kiện bất khả
+      // thi để trả 0 kết quả, thay vì bỏ qua bộ lọc và trả về TẤT CẢ.
+      and.push(or.length > 0 ? { OR: or } : { id: { in: [] } });
     }
     if (query.source?.length && omit !== 'source') and.push({ source: { in: query.source } });
     if (query.employmentType?.length && omit !== 'employmentType')

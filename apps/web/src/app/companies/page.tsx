@@ -46,7 +46,7 @@ export default async function CompaniesPage({ searchParams }: PageProps) {
   // hàng nhau và người đọc phải tự biết IOC với NOC là cùng một phía, còn EPC
   // với CONSULTANCY là phía kia. Tầng trên làm rõ điều đó ngay.
   const grouped = companies.reduce<Record<string, Record<string, typeof companies>>>((acc, c) => {
-    const category = companyCategoryOf(c.type);
+    const category = companyCategoryOf(c.type, c.slug);
     ((acc[category] ??= {})[c.type] ??= []).push(c);
     return acc;
   }, {});
